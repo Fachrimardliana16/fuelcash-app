@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -59,16 +60,26 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Kata Sandi')
                             ->password()
-                            ->dehydrateStateUsing(fn($state) => !empty($state) ? bcrypt($state) : null)
+                            ->dehydrated(fn($state) => filled($state))
+                            ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : null)
                             ->required(fn($context) => $context === 'create')
                             ->minLength(8)
-                            ->rules(['min:8', 'nullable'])
+                            ->rules(['min:8'])
                             ->validationMessages([
                                 'min' => 'Kata sandi minimal 8 karakter',
                             ]),
                         Forms\Components\DateTimePicker::make('email_verified_at')
                             ->label('Tanggal Verifikasi Email')
                             ->disabled()
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Role')
+                    ->description('Pilih role untuk pengguna')
+                    ->schema([
+                        Forms\Components\Select::make('roles')
+                            ->multiple()
+                            ->relationship('roles', 'name')
+                            ->preload()
                     ])->columns(2),
             ]);
     }

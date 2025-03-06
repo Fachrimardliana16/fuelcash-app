@@ -20,14 +20,14 @@ class TransactionReportController extends Controller
 
         $transactions = $query->orderBy('usage_date')->get();
 
-        $dateRange = Carbon::parse($request->start_date)->format('d/m/Y') . ' - ' .
-            Carbon::parse($request->end_date)->format('d/m/Y');
+        $dateRange = Carbon::parse($request->start_date)->format('d-m-Y') . '_to_' .
+            Carbon::parse($request->end_date)->format('d-m-Y');
 
         $pdf = Pdf::loadView('reports.transactions', [
             'transactions' => $transactions,
-            'dateRange' => $dateRange
+            'dateRange' => str_replace('_to_', ' - ', $dateRange)
         ]);
 
-        return $pdf->stream("transactions-report-{$dateRange}.pdf");
+        return $pdf->download("laporan_transaksi_{$dateRange}.pdf");
     }
 }
