@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Closure;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransactionResource extends Resource
 {
@@ -304,9 +305,58 @@ class TransactionResource extends Resource
                     })
             ])
             ->headerActions([
-                TransactionResource\Actions\ReportAction::make()
+                Tables\Actions\Action::make('generateTransactionReport')
                     ->label('Buat Laporan')
-                    ->icon('heroicon-o-document-text'),
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->form([
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Dari Tanggal')
+                            ->required()
+                            ->default(now()->startOfMonth()),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Sampai Tanggal')
+                            ->required()
+                            ->default(now())
+                            ->afterOrEqual('start_date'),
+                    ])
+                    ->action(function (array $data) {
+                        $latestBalance = Balance::latest()->first();
+                        $initialBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+                        
+                        $startDate = \Carbon\Carbon::parse($data['start_date']);
+                        $endDate = \Carbon\Carbon::parse($data['end_date']);
+                        
+                        $transactions = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance'])
+                            ->whereBetween('usage_date', [
+                                $startDate->startOfDay(),
+                                $endDate->endOfDay()
+                            ])
+                            ->orderBy('usage_date', 'asc')
+                            ->orderBy('created_at', 'asc')
+                            ->get();
+                        
+                        if ($transactions->isEmpty()) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Tidak ada transaksi')
+                                ->body('Tidak ada transaksi dalam rentang tanggal yang dipilih')
+                                ->send();
+                            
+                            return;
+                        }
+                        
+                        $dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
+                        
+                        $pdf = Pdf::loadView('reports.transactions', [
+                            'transactions' => $transactions,
+                            'dateRange' => $dateRange,
+                            'initialBalance' => $initialBalance
+                        ]);
+                        
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf');
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
