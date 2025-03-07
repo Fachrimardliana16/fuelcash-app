@@ -105,8 +105,24 @@ class BalanceResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([
-                BalanceResource\Actions\ReportAction::make('generateBalanceReport')
-                    ->label('Buat Laporan'),
+                Tables\Actions\Action::make('generateBalanceReport')
+                    ->label('Buat Laporan')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->action(function () {
+                        $balances = Balance::with('transactions')
+                            ->orderBy('date', 'desc')
+                            ->get();
+                        
+                        $pdf = Pdf::loadView('pdf.balance-report', [
+                            'balances' => $balances,
+                            'total_deposit' => $balances->sum('deposit_amount'),
+                            'current_balance' => $balances->last()->remaining_balance
+                        ]);
+                        
+                        return response()->streamDownload(function () use ($pdf) {
+                            echo $pdf->output();
+                        }, 'laporan-saldo-' . now()->format('Y-m-d') . '.pdf');
+                    }),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
@@ -114,19 +130,22 @@ class BalanceResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Lihat'),
                 Tables\Actions\EditAction::make()->label('Ubah'),
-                Tables\Actions\Action::make('pdf')
-                    ->label('Ekspor PDF')
-                    ->icon('heroicon-o-document-arrow-down')
+                Tables\Actions\Action::make('request-letter')
+                    ->label('Surat Pengajuan')
+                    ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->action(function (Balance $record) {
-                        $pdf = Pdf::loadView('pdf.balance-report', [
+                        // Helper function untuk mengubah angka menjadi kata
+                        $terbilang = new \App\Helpers\Terbilang();
+                        
+                        $pdf = Pdf::loadView('pdf.fuel-request-letter', [
                             'balance' => $record,
-                            'transactions' => $record->transactions
+                            'terbilang' => $terbilang->convert($record->deposit_amount)
                         ]);
 
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
-                        }, 'balance-report-' . $record->date . '.pdf');
+                        }, 'surat-pengajuan-bbm-' . $record->date . '.pdf');
                     }),
             ])
             ->bulkActions([
