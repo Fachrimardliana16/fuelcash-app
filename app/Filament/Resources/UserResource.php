@@ -96,6 +96,10 @@ class UserResource extends Resource
                     ->label('Alamat Email')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Role')
+                    ->separator(', ')
+                    ->sortable(),
                 Tables\Columns\IconColumn::make('email_verified_at')
                     ->label('Status Verifikasi')
                     ->boolean()
