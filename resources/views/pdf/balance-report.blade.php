@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <style>
         body { font-family: Arial, sans-serif; }
-        .header { text-align: center; margin-bottom: 30px; }
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+        }
         .logo { margin-bottom: 10px; }
         .company-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
         .address { margin-bottom: 5px; }
@@ -16,15 +19,16 @@
         .summary { margin: 20px 0; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
+        .letterhead-img {
+            width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="company-name">PERUMDA AIR MINUM TIRTA PERWIRA</div>
-        <div class="company-name">KABUPATEN PURBALINGGA</div>
-        <div class="address">Jl. Letjend S. Parman No. 62 Purbalingga</div>
-        <div class="contact">Telp. (0281) 891350 Fax. (0281) 891350</div>
-        <hr style="border-top: 2px solid black; margin: 20px 0;">
+        <img src="{{ storage_path('app/public/kop_surat.png') }}" class="letterhead-img">
     </div>
 
     <div class="title">LAPORAN SALDO</div>
