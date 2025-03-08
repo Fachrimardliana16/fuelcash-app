@@ -12,6 +12,11 @@
             text-align: center;
             margin-bottom: 30px;
         }
+        .letterhead-img {
+            width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+        }
         .letter-body {
             margin: 20px 0;
         }
@@ -63,6 +68,10 @@
     </style>
 </head>
 <body>
+    <div class="letterhead">
+        <img src="{{ storage_path('app/public/kop_surat.png') }}" class="letterhead-img">
+    </div>
+
     <div class="letter-body">
         <p>Kepada Yth.<br>
         Direktur Utama<br>

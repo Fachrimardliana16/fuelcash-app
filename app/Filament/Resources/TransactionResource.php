@@ -358,6 +358,12 @@ class TransactionResource extends Resource
                         }, 'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf');
                     }),
             ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ExportBulkAction::make(),
+                ])->label('Aksi Grup'),
+            ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
@@ -373,12 +379,6 @@ class TransactionResource extends Resource
                             $action->cancel();
                         }
                     }),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ExportBulkAction::make(),
-                ]),
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
