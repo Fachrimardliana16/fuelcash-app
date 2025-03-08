@@ -12,8 +12,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
-use Closure;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class TransactionResource extends Resource
 {
@@ -159,27 +163,97 @@ class TransactionResource extends Resource
 
                         Forms\Components\FileUpload::make('fuel_receipt')
                             ->image()
+                            ->maxSize(5120) // 5MB allowed for upload
                             ->directory('fuel-receipts')
-                            ->maxSize(2048)
                             ->label('Struk BBM')
                             ->columnSpanFull()
-                            ->rules(['image', 'max:2048'])
+                            ->rules(['image'])
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
-                                'max' => 'Ukuran file maksimal 2MB',
-                            ]),
+                            ])
+                            // Handle image upload and compression
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): string {
+                                $filename = $file->hashName();
+
+                                // Generate path where the file will be stored
+                                $directory = 'fuel-receipts';
+                                $path = $directory . '/' . $filename;
+
+                                // Create temporary disk path for compression
+                                $tempPath = $file->getRealPath();
+
+                                // Using Intervention Image v3 syntax
+                                $manager = new ImageManager(new Driver());
+                                $image = $manager->read($tempPath);
+
+                                // Resize if larger than 1200px on any dimension
+                                $width = $image->width();
+                                $height = $image->height();
+
+                                if ($width > 1200 || $height > 1200) {
+                                    if ($width > $height) {
+                                        $image->scale(width: 1200);
+                                    } else {
+                                        $image->scale(height: 1200);
+                                    }
+                                }
+
+                                // Compress and encode as JPEG with 75% quality
+                                $encodedImage = $image->toJpeg(75);
+
+                                // Save to storage
+                                Storage::disk('public')->put($path, $encodedImage);
+
+                                return $path;
+                            }),
 
                         Forms\Components\FileUpload::make('invoice')
                             ->image()
+                            ->maxSize(5120) // 5MB allowed for upload
                             ->directory('invoices')
-                            ->maxSize(2048)
                             ->label('Nota/Kwitansi')
                             ->columnSpanFull()
-                            ->rules(['image', 'max:2048'])
+                            ->rules(['image'])
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
-                                'max' => 'Ukuran file maksimal 2MB',
-                            ]),
+                            ])
+                            // Handle image upload and compression
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): string {
+                                $filename = $file->hashName();
+
+                                // Generate path where the file will be stored
+                                $directory = 'invoices';
+                                $path = $directory . '/' . $filename;
+
+                                // Create temporary disk path for compression
+                                $tempPath = $file->getRealPath();
+
+                                // Using Intervention Image v3 syntax
+                                $manager = new ImageManager(new Driver());
+                                $image = $manager->read($tempPath);
+
+                                // Resize if larger than 1200px on any dimension
+                                $width = $image->width();
+                                $height = $image->height();
+
+                                if ($width > 1200 || $height > 1200) {
+                                    if ($width > $height) {
+                                        $image->scale(width: 1200);
+                                    } else {
+                                        $image->scale(height: 1200);
+                                    }
+                                }
+
+                                // Compress and encode as JPEG with 75% quality
+                                $encodedImage = $image->toJpeg(75);
+
+                                // Save to storage
+                                Storage::disk('public')->put($path, $encodedImage);
+
+                                return $path;
+                            }),
 
                         Forms\Components\Select::make('balance_id')
                             ->relationship('balance', 'id')
@@ -322,10 +396,10 @@ class TransactionResource extends Resource
                     ->action(function (array $data) {
                         $latestBalance = Balance::latest()->first();
                         $initialBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-                        
+
                         $startDate = \Carbon\Carbon::parse($data['start_date']);
                         $endDate = \Carbon\Carbon::parse($data['end_date']);
-                        
+
                         $transactions = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance'])
                             ->whereBetween('usage_date', [
                                 $startDate->startOfDay(),
@@ -334,25 +408,25 @@ class TransactionResource extends Resource
                             ->orderBy('usage_date', 'asc')
                             ->orderBy('created_at', 'asc')
                             ->get();
-                        
+
                         if ($transactions->isEmpty()) {
                             Notification::make()
                                 ->warning()
                                 ->title('Tidak ada transaksi')
                                 ->body('Tidak ada transaksi dalam rentang tanggal yang dipilih')
                                 ->send();
-                            
+
                             return;
                         }
-                        
+
                         $dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
-                        
+
                         $pdf = Pdf::loadView('reports.transactions', [
                             'transactions' => $transactions,
                             'dateRange' => $dateRange,
                             'initialBalance' => $initialBalance
                         ]);
-                        
+
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
                         }, 'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf');
@@ -405,6 +479,7 @@ class TransactionResource extends Resource
         return [
             'index' => Pages\ListTransactions::route('/'),
             'create' => Pages\CreateTransaction::route('/create'),
+            'view' => Pages\ViewTransaction::route('/{record}'),
             'edit' => Pages\EditTransaction::route('/{record}/edit'),
         ];
     }

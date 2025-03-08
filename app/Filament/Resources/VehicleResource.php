@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VehicleResource\Pages;
+use App\Filament\Resources\VehicleResource\RelationManagers;
 use App\Filament\Resources\VehicleResource\Widgets\VehicleStatsOverview;
 use App\Models\Vehicle;
 use Filament\Forms;
@@ -144,7 +145,7 @@ class VehicleResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\TransactionsRelationManager::class,
         ];
     }
 
@@ -153,6 +154,7 @@ class VehicleResource extends Resource
         return [
             'index' => Pages\ListVehicles::route('/'),
             'create' => Pages\CreateVehicle::route('/create'),
+            'view' => Pages\ViewVehicle::route('/{record}'),
             'edit' => Pages\EditVehicle::route('/{record}/edit'),
         ];
     }
