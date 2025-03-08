@@ -1,69 +1,123 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <style>
         @page {
             margin: 20px;
         }
-        body { 
+
+        body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
         }
+
         .letterhead-img {
             width: 100%;
             max-height: 150px;
             object-fit: contain;
         }
-        .title { font-size: 18px; font-weight: bold; margin: 20px 0; text-align: center; }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
+
+        .title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 20px;
             page-break-inside: auto;
         }
-        th, td { 
-            border: 1px solid #ddd; 
-            padding: 3px 4px; 
-            text-align: left; 
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 3px 4px;
+            text-align: left;
             font-size: 10px;
             vertical-align: top;
         }
-        th { background-color: #f2f2f2; }
-        .text-right { 
-            text-align: right; 
-            white-space: nowrap; 
+
+        th {
+            background-color: #f2f2f2;
         }
-        .summary { margin: 20px 0; }
-        .description { 
-            max-width: none; 
+
+        .text-right {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .summary {
+            margin: 20px 0;
+        }
+
+        .description {
+            max-width: none;
             word-wrap: break-word;
             padding-right: 10px;
         }
-        .date-col { width: 60px; }
-        .vehicle-col { width: 110px; }
-        .fueltype-col { width: 70px; }
-        .amount-col { width: 65px; }
-        .balance-col { width: 70px; }
-        .description-col { width: 220px; }
-        .vehicle-info { line-height: 1.1; }
-        .vehicle-owner { font-weight: bold; }
-        .vehicle-plate { color: #666; }
-        .fuel-info { 
+
+        .date-col {
+            width: 60px;
+        }
+
+        .vehicle-col {
+            width: 110px;
+        }
+
+        .fueltype-col {
+            width: 70px;
+        }
+
+        .amount-col {
+            width: 65px;
+        }
+
+        .balance-col {
+            width: 70px;
+        }
+
+        .description-col {
+            width: 220px;
+        }
+
+        .vehicle-info {
+            line-height: 1.1;
+        }
+
+        .vehicle-owner {
+            font-weight: bold;
+        }
+
+        .vehicle-plate {
+            color: #666;
+        }
+
+        .fuel-info {
             line-height: 1.1;
             font-size: 9px;
         }
-        .fuel-type { 
+
+        .fuel-type {
             font-weight: bold;
             margin-bottom: 1px;
         }
-        .fuel-name { color: #666; }
+
+        .fuel-name {
+            color: #666;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">
         <img src="{{ storage_path('app/public/kop_surat.png') }}" class="letterhead-img">
@@ -138,10 +192,12 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><strong>Total:</strong></td>
-                <td class="text-right"><strong>{{ number_format($transactions->sum('amount'), 0, ',', '.') }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($transactions->sum('amount'), 0, ',', '.') }}</strong>
+                </td>
                 <td class="text-right"><strong>{{ number_format($initialBalance, 0, ',', '.') }}</strong></td>
             </tr>
         </tfoot>
     </table>
 </body>
+
 </html>

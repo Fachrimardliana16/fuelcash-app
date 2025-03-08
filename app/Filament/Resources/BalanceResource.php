@@ -168,6 +168,7 @@ class BalanceResource extends Resource
         return [
             'index' => Pages\ListBalances::route('/'),
             'create' => Pages\CreateBalance::route('/create'),
+            'view' => Pages\ViewBalance::route('/{record}'),
             'edit' => Pages\EditBalance::route('/{record}/edit'),
         ];
     }
