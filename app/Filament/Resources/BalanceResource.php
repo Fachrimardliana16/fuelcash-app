@@ -44,17 +44,18 @@ class BalanceResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('Rp')
-                            ->mask('999999999')
+                            ->inputMode('numeric') // Add this
                             ->placeholder('Masukkan jumlah deposit')
                             ->live(debounce: 300)
                             ->minValue(1)
+                            // Removed step(1000)
                             ->validationMessages([
                                 'required' => 'Silakan masukkan jumlah deposit',
                                 'numeric' => 'Jumlah harus berupa angka',
                                 'min' => 'Jumlah harus lebih besar dari 0',
                             ])
                             ->afterStateUpdated(function ($state, Forms\Set $set) use ($lastBalance) {
-                                $newBalance = $lastBalance + ($state ?? 0);
+                                $newBalance = $lastBalance + (float)($state ?? 0);
                                 $set('remaining_balance', $newBalance);
                             }),
                     ])->columns(2),
@@ -112,13 +113,13 @@ class BalanceResource extends Resource
                         $balances = Balance::with('transactions')
                             ->orderBy('date', 'desc')
                             ->get();
-                        
+
                         $pdf = Pdf::loadView('pdf.balance-report', [
                             'balances' => $balances,
                             'total_deposit' => $balances->sum('deposit_amount'),
                             'current_balance' => $balances->last()->remaining_balance
                         ]);
-                        
+
                         return response()->streamDownload(function () use ($pdf) {
                             echo $pdf->output();
                         }, 'laporan-saldo-' . now()->format('Y-m-d') . '.pdf');
@@ -137,7 +138,7 @@ class BalanceResource extends Resource
                     ->action(function (Balance $record) {
                         // Helper function untuk mengubah angka menjadi kata
                         $terbilang = new \App\Helpers\Terbilang();
-                        
+
                         $pdf = Pdf::loadView('pdf.fuel-request-letter', [
                             'balance' => $record,
                             'terbilang' => $terbilang->convert($record->deposit_amount)
