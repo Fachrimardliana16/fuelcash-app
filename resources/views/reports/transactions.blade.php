@@ -67,19 +67,19 @@
         }
 
         .date-col {
-            width: 60px;
+            width: 50px;
         }
 
         .vehicle-col {
-            width: 110px;
+            width: 100px;
         }
 
         .fueltype-col {
-            width: 70px;
+            width: 60px;
         }
 
         .amount-col {
-            width: 65px;
+            width: 70px;
         }
 
         .balance-col {
@@ -87,7 +87,7 @@
         }
 
         .description-col {
-            width: 220px;
+            width: 180px;
         }
 
         .vehicle-info {
@@ -114,6 +114,10 @@
 
         .fuel-name {
             color: #666;
+        }
+
+        .volume-col {
+            width: 55px;
         }
     </style>
 </head>
@@ -154,6 +158,7 @@
                 <th class="fueltype-col">Jenis BBM</th>
                 <th class="description-col">Uraian</th>
                 <th class="amount-col">Jumlah (Rp)</th>
+                <th class="volume-col">Volume (L)</th>
                 <th class="balance-col">Sisa Saldo</th>
             </tr>
         </thead>
@@ -182,6 +187,7 @@
                     </td>
                     <td>{{ $transaction->usage_description }}</td>
                     <td class="text-right">{{ number_format($transaction->amount, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($transaction->volume, 2, ',', '.') }}</td>
                     @php
                         $remainingBalance -= $transaction->amount;
                     @endphp
@@ -192,8 +198,8 @@
         <tfoot>
             <tr>
                 <td colspan="5" class="text-right"><strong>Total:</strong></td>
-                <td class="text-right"><strong>{{ number_format($transactions->sum('amount'), 0, ',', '.') }}</strong>
-                </td>
+                <td class="text-right"><strong>{{ number_format($transactions->sum('amount'), 0, ',', '.') }}</strong></td>
+                <td class="text-right"><strong>{{ number_format($transactions->sum('volume'), 2, ',', '.') }}</strong></td>
                 <td class="text-right"><strong>{{ number_format($initialBalance, 0, ',', '.') }}</strong></td>
             </tr>
         </tfoot>

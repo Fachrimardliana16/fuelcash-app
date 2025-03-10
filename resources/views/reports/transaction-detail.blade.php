@@ -250,6 +250,10 @@
                 <td class="value money-value">Rp {{ number_format($transaction->amount, 0, ',', '.') }}</td>
             </tr>
             <tr>
+                <td class="label">Volume BBM</td>
+                <td class="value">{{ number_format($transaction->volume, 2, ',', '.') }} Liter</td>
+            </tr>
+            <tr>
                 <td class="label">Sisa Saldo</td>
                 <td class="value money-value">Rp
                     {{ number_format($transaction->balance->remaining_balance ?? 0, 0, ',', '.') }}</td>

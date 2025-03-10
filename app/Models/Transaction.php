@@ -20,6 +20,7 @@ class Transaction extends Model
         'fuel_id',
         'fuel_type_id',
         'amount',
+        'volume',
         'usage_description',
         'fuel_receipt',
         'invoice',
@@ -29,6 +30,7 @@ class Transaction extends Model
     protected $casts = [
         'usage_date' => 'date',
         'amount' => 'decimal:2',
+        'volume' => 'decimal:2',
     ];
 
     public function balance()
