@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('fuel_id')->constrained();
             $table->foreignId('fuel_type_id')->constrained();
             $table->decimal('amount', 12, 2);
+            $table->decimal('volume', 10, 2)->comment('Fuel volume in liters');
             $table->text('usage_description');
             $table->string('fuel_receipt')->nullable();
             $table->string('invoice')->nullable();

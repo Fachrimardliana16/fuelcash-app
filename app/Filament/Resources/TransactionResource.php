@@ -18,6 +18,8 @@ use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use ImageOptimizer;
+use Filament\Forms\Components\FileUpload;
 
 class TransactionResource extends Resource
 {
@@ -132,7 +134,17 @@ class TransactionResource extends Resource
                             ->label('Jumlah')
                             ->placeholder('Masukkan jumlah')
                             ->mask('999999999')
-                            ->live()
+                            ->live(debounce: 300)
+                            ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                $fuelId = $get('fuel_id');
+                                if ($fuelId && $state) {
+                                    $fuel = \App\Models\Fuel::find($fuelId);
+                                    if ($fuel && $fuel->price > 0) {
+                                        $volume = $state / $fuel->price;
+                                        $set('volume', number_format($volume, 2));
+                                    }
+                                }
+                            })
                             ->rules([
                                 'required',
                                 'numeric',
@@ -144,7 +156,14 @@ class TransactionResource extends Resource
                                 'numeric' => 'Jumlah harus berupa angka',
                                 'min' => 'Jumlah minimal 1',
                                 'max' => "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($availableBalance, 0, ',', '.')
-                            ])
+                            ]),
+
+                        Forms\Components\TextInput::make('volume')
+                            ->label('Volume BBM')
+                            ->suffix('Liter')
+                            ->disabled()
+                            ->dehydrated(true),
+
                     ])->columns(2),
 
                 Forms\Components\Section::make('Keterangan & Dokumen')
@@ -161,9 +180,10 @@ class TransactionResource extends Resource
                             ])
                             ->columnSpanFull(),
 
-                        Forms\Components\FileUpload::make('fuel_receipt')
+                        FileUpload::make('fuel_receipt')
                             ->image()
-                            ->maxSize(5120) // 5MB allowed for upload
+                            ->optimize('webp')
+                            ->resize(50)
                             ->directory('fuel-receipts')
                             ->label('Struk BBM')
                             ->columnSpanFull()
@@ -171,46 +191,13 @@ class TransactionResource extends Resource
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
-                            ])
-                            // Handle image upload and compression
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): string {
-                                $filename = $file->hashName();
+                            ]),
 
-                                // Generate path where the file will be stored
-                                $directory = 'fuel-receipts';
-                                $path = $directory . '/' . $filename;
-
-                                // Create temporary disk path for compression
-                                $tempPath = $file->getRealPath();
-
-                                // Using Intervention Image v3 syntax
-                                $manager = new ImageManager(new Driver());
-                                $image = $manager->read($tempPath);
-
-                                // Resize if larger than 1200px on any dimension
-                                $width = $image->width();
-                                $height = $image->height();
-
-                                if ($width > 1200 || $height > 1200) {
-                                    if ($width > $height) {
-                                        $image->scale(width: 1200);
-                                    } else {
-                                        $image->scale(height: 1200);
-                                    }
-                                }
-
-                                // Compress and encode as JPEG with 75% quality
-                                $encodedImage = $image->toJpeg(75);
-
-                                // Save to storage
-                                Storage::disk('public')->put($path, $encodedImage);
-
-                                return $path;
-                            }),
-
-                        Forms\Components\FileUpload::make('invoice')
+                        FileUpload::make('invoice')
                             ->image()
-                            ->maxSize(5120) // 5MB allowed for upload
+                            ->optimize('webp')
+                            ->resize(50)
+                            // ->maxSize(5120)
                             ->directory('invoices')
                             ->label('Nota/Kwitansi')
                             ->columnSpanFull()
@@ -218,42 +205,7 @@ class TransactionResource extends Resource
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
-                            ])
-                            // Handle image upload and compression
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file): string {
-                                $filename = $file->hashName();
-
-                                // Generate path where the file will be stored
-                                $directory = 'invoices';
-                                $path = $directory . '/' . $filename;
-
-                                // Create temporary disk path for compression
-                                $tempPath = $file->getRealPath();
-
-                                // Using Intervention Image v3 syntax
-                                $manager = new ImageManager(new Driver());
-                                $image = $manager->read($tempPath);
-
-                                // Resize if larger than 1200px on any dimension
-                                $width = $image->width();
-                                $height = $image->height();
-
-                                if ($width > 1200 || $height > 1200) {
-                                    if ($width > $height) {
-                                        $image->scale(width: 1200);
-                                    } else {
-                                        $image->scale(height: 1200);
-                                    }
-                                }
-
-                                // Compress and encode as JPEG with 75% quality
-                                $encodedImage = $image->toJpeg(75);
-
-                                // Save to storage
-                                Storage::disk('public')->put($path, $encodedImage);
-
-                                return $path;
-                            }),
+                            ]),
 
                         Forms\Components\Select::make('balance_id')
                             ->relationship('balance', 'id')
@@ -317,6 +269,16 @@ class TransactionResource extends Resource
                     ->money('idr')
                     ->sortable()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('volume')
+                    ->label('Volume')
+                    ->suffix(' Liter')
+                    ->numeric(
+                        decimalPlaces: 2,
+                        decimalSeparator: ',',
+                        thousandsSeparator: '.'
+                    )
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('usage_description')
                     ->label('Keterangan')
