@@ -47,18 +47,21 @@ class BalanceStatsWidget extends BaseWidget
 
         return [
             Stat::make('Monthly Deposits', 'Rp ' . number_format($currentMonthDeposit, 0, ',', '.'))
-                ->description($monthlyTrend >= 0 ? '+' . number_format($monthlyTrend, 1) . '% from last month' : number_format($monthlyTrend, 1) . '% from last month')
+                ->description($monthlyTrend >= 0 ? '+' . number_format($monthlyTrend, 1) . '% dari bulan lalu' : number_format($monthlyTrend, 1) . '% from last month')
                 ->descriptionIcon($monthlyTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->color($monthlyTrend >= 0 ? 'success' : 'danger'),
+                ->color($monthlyTrend >= 0 ? 'success' : 'danger')
+                ->label('Depostit Bulanan'),
 
             Stat::make('Yearly Deposits', 'Rp ' . number_format($currentYearDeposit, 0, ',', '.'))
-                ->description($yearlyTrend >= 0 ? '+' . number_format($yearlyTrend, 1) . '% from last year' : number_format($yearlyTrend, 1) . '% from last year')
+                ->description($yearlyTrend >= 0 ? '+' . number_format($yearlyTrend, 1) . '% dari tahun lalu' : number_format($yearlyTrend, 1) . '% from last year')
                 ->descriptionIcon($yearlyTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->color($yearlyTrend >= 0 ? 'success' : 'danger'),
+                ->color($yearlyTrend >= 0 ? 'success' : 'danger')
+                ->label('Depostit Tahunan'),
 
             Stat::make('Current Balance', 'Rp ' . number_format($lastBalance, 0, ',', '.'))
-                ->description('Last updated: ' . Carbon::parse(Balance::latest()->first()?->date)->diffForHumans())
-                ->color($lastBalance > 1000000 ? 'success' : 'danger'),
+                ->description('Update Terakhir: ' . Carbon::parse(Balance::latest()->first()?->date)->diffForHumans())
+                ->color($lastBalance > 1000000 ? 'success' : 'danger')
+                ->label('Saldo Saat Ini'),
         ];
     }
 }
