@@ -182,6 +182,13 @@ class TransactionResource extends Resource
 
                         FileUpload::make('fuel_receipt')
                             ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                null,
+                                '16:9',
+                                '4:3',
+                                '1:1',
+                            ])
                             ->optimize('webp')
                             ->resize(50)
                             ->directory('fuel-receipts')
@@ -195,6 +202,13 @@ class TransactionResource extends Resource
 
                         FileUpload::make('invoice')
                             ->image()
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                null,
+                                '16:9',
+                                '4:3',
+                                '1:1',
+                            ])
                             ->optimize('webp')
                             ->resize(50)
                             // ->maxSize(5120)
