@@ -181,7 +181,7 @@ class TransactionResource extends Resource
                             ->columnSpanFull(),
 
                         FileUpload::make('fuel_receipt')
-                            // ->image()
+                            ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,
@@ -189,19 +189,27 @@ class TransactionResource extends Resource
                                 '4:3',
                                 '1:1',
                             ])
-                            ->optimize('webp')
-                            ->resize(50)
+                            ->imageEditorViewportWidth('1920')
+                            ->imageEditorViewportHeight('1080')
+                            ->acceptedFileTypes([
+                                'image/jpeg',
+                                'image/png',
+                                'image/jpg',
+                                'image/heic',
+                                'image/heif'
+                            ])
+                            ->maxSize(10240)
                             ->directory('fuel-receipts')
+                            ->optimize('jpg')
                             ->label('Struk BBM')
                             ->columnSpanFull()
-                            ->rules(['image'])
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
+                                'max' => 'Ukuran file maksimal 10MB',
                             ]),
 
                         FileUpload::make('invoice')
-                            // ->image()
+                            ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,
@@ -209,16 +217,23 @@ class TransactionResource extends Resource
                                 '4:3',
                                 '1:1',
                             ])
-                            ->optimize('webp')
-                            ->resize(50)
-                            // ->maxSize(5120)
+                            ->imageEditorViewportWidth('1920')
+                            ->imageEditorViewportHeight('1080')
+                            ->acceptedFileTypes([
+                                'image/jpeg',
+                                'image/png',
+                                'image/jpg',
+                                'image/heic',
+                                'image/heif'
+                            ])
+                            ->maxSize(10240)
                             ->directory('invoices')
+                            ->optimize('jpg')
                             ->label('Nota/Kwitansi')
                             ->columnSpanFull()
-                            ->rules(['image'])
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
+                                'max' => 'Ukuran file maksimal 10MB',
                             ]),
 
                         Forms\Components\Select::make('balance_id')
