@@ -181,7 +181,7 @@ class TransactionResource extends Resource
                             ->columnSpanFull(),
 
                         FileUpload::make('fuel_receipt')
-                            ->image()
+                            // ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,
@@ -201,7 +201,7 @@ class TransactionResource extends Resource
                             ]),
 
                         FileUpload::make('invoice')
-                            ->image()
+                            // ->image()
                             ->imageEditor()
                             ->imageEditorAspectRatios([
                                 null,

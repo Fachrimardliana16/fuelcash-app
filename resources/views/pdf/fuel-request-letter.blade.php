@@ -258,8 +258,6 @@
 
 <body>
     <div class="container">
-
-
         <!-- Recipient on right -->
         <div class="recipient" style="width: 35%; margin-right: 0;">
             <p class="compact-text" style="text-align: left;">
@@ -316,7 +314,7 @@
                         <p class="signature-nip">NIP. 196705121990031002</p>
                     </td>
                     <td>
-                        <p class="signature-title" style="margin-bottom: 60px;">Bendahara BBM</p>
+                        <p class="signature-title" style="margin-bottom: 60px;"><br>Bendahara BBM</p>
                         <p class="signature-name">Wahyuningtyas P, S.Sos</p>
                         <p class="signature-nip">NIP. 198503122010012022</p>
                     </td>
