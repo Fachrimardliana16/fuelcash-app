@@ -272,7 +272,7 @@
         <div class="section">
             <div class="section-title">Struk BBM</div>
             <div class="receipt-container">
-                <img src="{{ $fuelReceiptBase64 }}" alt="Struk BBM" class="receipt-image">
+                <img src="{!! $fuelReceiptBase64 !!}" alt="Struk BBM" class="receipt-image">
             </div>
         </div>
     @endif
@@ -281,7 +281,7 @@
         <div class="section">
             <div class="section-title">Nota/Kwitansi</div>
             <div class="receipt-container">
-                <img src="{{ $invoiceBase64 }}" alt="Nota/Kwitansi" class="receipt-image">
+                <img src="{!! $invoiceBase64 !!}" alt="Nota/Kwitansi" class="receipt-image">
             </div>
         </div>
     @endif

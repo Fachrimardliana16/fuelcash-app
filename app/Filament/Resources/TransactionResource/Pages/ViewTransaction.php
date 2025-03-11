@@ -11,6 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Intervention\Image\Facades\Image;
 
 class ViewTransaction extends ViewRecord
 {
@@ -35,8 +36,20 @@ class ViewTransaction extends ViewRecord
 
                     if ($transaction->fuel_receipt && Storage::disk('public')->exists($transaction->fuel_receipt)) {
                         try {
-                            $fuelReceiptContents = Storage::disk('public')->get($transaction->fuel_receipt);
-                            $fuelReceiptBase64 = 'data:image/jpeg;base64,' . base64_encode($fuelReceiptContents);
+                            $image = Image::make(Storage::disk('public')->path($transaction->fuel_receipt));
+                            
+                            // Resize if larger than 800x800
+                            if ($image->width() > 800 || $image->height() > 800) {
+                                $image->resize(800, 800, function ($constraint) {
+                                    $constraint->aspectRatio();
+                                    $constraint->upsize();
+                                });
+                            }
+                            
+                            // Compress image quality
+                            $image->encode('jpg', 60);
+                            
+                            $fuelReceiptBase64 = 'data:image/jpeg;base64,' . base64_encode($image->encode());
                         } catch (\Exception $e) {
                             // Silent fail - just don't include the image
                         }
@@ -44,8 +57,20 @@ class ViewTransaction extends ViewRecord
 
                     if ($transaction->invoice && Storage::disk('public')->exists($transaction->invoice)) {
                         try {
-                            $invoiceContents = Storage::disk('public')->get($transaction->invoice);
-                            $invoiceBase64 = 'data:image/jpeg;base64,' . base64_encode($invoiceContents);
+                            $image = Image::make(Storage::disk('public')->path($transaction->invoice));
+                            
+                            // Resize if larger than 800x800
+                            if ($image->width() > 800 || $image->height() > 800) {
+                                $image->resize(800, 800, function ($constraint) {
+                                    $constraint->aspectRatio();
+                                    $constraint->upsize();
+                                });
+                            }
+                            
+                            // Compress image quality
+                            $image->encode('jpg', 60);
+                            
+                            $invoiceBase64 = 'data:image/jpeg;base64,' . base64_encode($image->encode());
                         } catch (\Exception $e) {
                             // Silent fail - just don't include the image
                         }
@@ -60,6 +85,12 @@ class ViewTransaction extends ViewRecord
                         'invoiceBase64' => $invoiceBase64,
                         'currentUser' => Auth::user(),
                     ]);
+
+                    // Set PDF options untuk optimasi
+                    $pdf->setPaper('a4')
+                        ->setOption('isHtml5ParserEnabled', true)
+                        ->setOption('isPhpEnabled', true)
+                        ->setOption('dpi', 96);
 
                     return response()->streamDownload(function () use ($pdf) {
                         echo $pdf->output();
