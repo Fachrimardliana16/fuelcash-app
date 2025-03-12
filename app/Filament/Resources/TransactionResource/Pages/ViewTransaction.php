@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TransactionResource\Pages;
 
 use App\Filament\Resources\TransactionResource;
+use App\Models\CompanySetting;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
@@ -26,9 +27,10 @@ class ViewTransaction extends ViewRecord
                 ->color('success')
                 ->action(function () {
                     $transaction = $this->record;
-
-                    // Load the transaction with its relationships
                     $transaction->load(['vehicle.vehicleType', 'fuelType', 'fuel', 'balance']);
+
+                    // Get company data directly from CompanySetting model
+                    $company = CompanySetting::first();
 
                     // Convert images to base64 if they exist
                     $fuelReceiptBase64 = null;
@@ -37,7 +39,7 @@ class ViewTransaction extends ViewRecord
                     if ($transaction->fuel_receipt && Storage::disk('public')->exists($transaction->fuel_receipt)) {
                         try {
                             $image = Image::make(Storage::disk('public')->path($transaction->fuel_receipt));
-                            
+
                             // Resize if larger than 800x800
                             if ($image->width() > 800 || $image->height() > 800) {
                                 $image->resize(800, 800, function ($constraint) {
@@ -45,10 +47,10 @@ class ViewTransaction extends ViewRecord
                                     $constraint->upsize();
                                 });
                             }
-                            
+
                             // Compress image quality
                             $image->encode('jpg', 60);
-                            
+
                             $fuelReceiptBase64 = 'data:image/jpeg;base64,' . base64_encode($image->encode());
                         } catch (\Exception $e) {
                             // Silent fail - just don't include the image
@@ -58,7 +60,7 @@ class ViewTransaction extends ViewRecord
                     if ($transaction->invoice && Storage::disk('public')->exists($transaction->invoice)) {
                         try {
                             $image = Image::make(Storage::disk('public')->path($transaction->invoice));
-                            
+
                             // Resize if larger than 800x800
                             if ($image->width() > 800 || $image->height() > 800) {
                                 $image->resize(800, 800, function ($constraint) {
@@ -66,10 +68,10 @@ class ViewTransaction extends ViewRecord
                                     $constraint->upsize();
                                 });
                             }
-                            
+
                             // Compress image quality
                             $image->encode('jpg', 60);
-                            
+
                             $invoiceBase64 = 'data:image/jpeg;base64,' . base64_encode($image->encode());
                         } catch (\Exception $e) {
                             // Silent fail - just don't include the image
@@ -84,6 +86,7 @@ class ViewTransaction extends ViewRecord
                         'fuelReceiptBase64' => $fuelReceiptBase64,
                         'invoiceBase64' => $invoiceBase64,
                         'currentUser' => Auth::user(),
+                        'company' => $company,
                     ]);
 
                     // Set PDF options untuk optimasi

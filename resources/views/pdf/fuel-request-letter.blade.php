@@ -86,16 +86,13 @@
         }
 
         .letter-body {
-            margin: 10px 0;
-            /* Reduced margin */
+            margin: 3px 0;
             text-align: justify;
         }
 
         .letter-body p {
-            margin: 7px 0;
-            /* Reduced margin */
-            line-height: 1.4;
-            /* Reduced line height */
+            margin: 3px 0;
+            line-height: 1.2;
         }
 
         .amount {
@@ -103,8 +100,7 @@
         }
 
         .signature-section {
-            margin-top: 15px;
-            /* Reduced margin */
+            margin-top: 10px;
             page-break-inside: avoid;
         }
 
@@ -145,6 +141,46 @@
             font-weight: bold;
         }
 
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+
+        .signature-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0 5px;
+            text-align: center;
+            border: none;
+        }
+
+        .signature-name {
+            font-weight: bold;
+            padding-top: 3px;
+            border-top: 1px solid #000;
+            display: inline-block;
+            min-width: 150px;
+            font-size: 10pt;
+            margin-top: 45px;
+        }
+
+        .signature-bottom {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .signature-bottom .signature-name {
+            margin-top: 45px;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 60px;
+            /* Adjusted margin */
+        }
+
         .signature-box-bottom {
             text-align: center;
             margin-top: 30px;
@@ -159,29 +195,22 @@
 
         .date-right {
             text-align: right;
-            margin: 10px 0;
-            /* Reduced margin */
+            margin: 5px 0;
             font-size: 10pt;
-            /* Smaller font */
         }
 
         .stamp-placeholder {
             position: absolute;
-            width: 70px;
-            /* Reduced size */
-            height: 70px;
-            /* Reduced size */
+            width: 50px;
+            height: 50px;
             left: 50%;
-            margin-left: -35px;
-            top: -20px;
-            /* Adjusted position */
+            margin-left: -25px;
+            top: -10px;
             opacity: 0.3;
             transform: rotate(-15deg);
             font-size: 9px;
-            /* Smaller font */
             text-align: center;
             border: 1px dashed #999;
-            /* Thinner border */
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -191,31 +220,24 @@
         .signature-name {
             font-weight: bold;
             padding-top: 3px;
-            /* Reduced padding */
             border-top: 1px solid #000;
             display: inline-block;
-            min-width: 150px;
-            /* Reduced width */
+            min-width: 200px;
             font-size: 10pt;
-            /* Smaller font */
         }
 
         .signature-nip {
             font-size: 9pt;
-            /* Smaller font */
             margin-top: 0;
         }
 
         .letter-footer {
-            margin-top: 15px;
-            /* Reduced margin */
+            margin-top: 8px;
             font-size: 8pt;
-            /* Smaller font */
             color: #666;
             text-align: center;
             border-top: 1px solid #ddd;
-            padding-top: 5px;
-            /* Reduced padding */
+            padding-top: 2px;
         }
 
         .compact-text {
@@ -226,25 +248,29 @@
         .signature-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 30px;
+            /* Adjusted margin */
         }
 
         .signature-table td {
             width: 50%;
             vertical-align: top;
-            padding: 0 10px;
+            padding: 0 20px;
+            /* Adjusted padding */
             text-align: center;
             border: none;
         }
 
         .signature-bottom {
-            margin-top: 20px;
+            margin-top: 40px;
+            /* Adjusted margin */
             text-align: center;
         }
 
         .stamp-area {
             position: relative;
             height: 40px;
+            margin-top: -5px;
         }
 
         .letter-number {
@@ -259,13 +285,13 @@
 <body>
     <div class="container">
         <!-- Recipient on right -->
-        <div class="recipient" style="width: 35%; margin-right: 0;">
+        <div class="recipient" style="width: 38%; margin-right: 0;">
             <p class="compact-text" style="text-align: left;">
                 Kepada Yth.<br>
                 Direktur Utama<br>
-                <strong>Perumda Air Minum Tirta Perwira</strong><br>
-                <strong>Tirta Perwira</strong><br>
-                <strong>Kabupaten Purbalingga</strong><br>
+                <strong>{{ $company->company_type }}</strong><br>
+                <strong>{{ $company->company_name }}</strong><br>
+                <strong>{{ $company->regency }}</strong><br>
                 di Tempat
             </p>
         </div>
@@ -308,34 +334,39 @@
             <!-- Table-based signature layout for better alignment -->
             <table class="signature-table">
                 <tr>
+                    @foreach($signatures->where('order', '<', 3) as $signature)
                     <td>
-                        <p class="signature-title" style="margin-bottom: 40px;">Diperiksa Oleh,<br>Kasubag Umum</p>
-                        <p class="signature-name">Irawan Tridesi WH, S.ST</p>
-                        <p class="signature-nip">NIP. 196705121990031002</p>
+                        <p class="signature-title">{{ $signature->position }}</p>
+                        <p class="signature-name">{{ $signature->name }}</p>
+                        @if($signature->nip)
+                        <p class="signature-nip">NIP. {{ $signature->nip }}</p>
+                        @endif
                     </td>
-                    <td>
-                        <p class="signature-title" style="margin-bottom: 60px;"><br>Bendahara BBM</p>
-                        <p class="signature-name">Wahyuningtyas P, S.Sos</p>
-                        <p class="signature-nip">NIP. 198503122010012022</p>
-                    </td>
+                    @endforeach
                 </tr>
             </table>
 
             <div class="signature-bottom">
-                <p class="signature-title">Menyetujui,<br>Kabag Umum<br>
-                    Perumda Air Minum Tirta Perwira Kab. Purbalingga</p>
+                @if($bottomSignature = $signatures->where('order', '>=', 3)->first())
+                <p class="signature-title">{{ $bottomSignature->title }},<br>{{ $bottomSignature->position }}<br>
+                    {{ $company->company_name }} {{ $company->regency }}</p>
+                @if($bottomSignature->show_stamp)
                 <div class="stamp-area">
                     <div class="stamp-placeholder">Stempel</div>
                 </div>
-                <p class="signature-name">Endah Susilowati, S.H.</p>
-                <p class="signature-nip">NIP. 197209151998032003</p>
+                @endif
+                <p class="signature-name">{{ $bottomSignature->name }}</p>
+                @if($bottomSignature->nip)
+                <p class="signature-nip">NIP. {{ $bottomSignature->nip }}</p>
+                @endif
+                @endif
             </div>
         </div>
 
         <!-- Footer -->
         <div class="letter-footer">
-            <p class="compact-text">Perumda Air Minum Tirta Perwira Kabupaten Purbalingga | Jl. Jenderal Sudirman No.
-                23, Purbalingga, Jawa Tengah 53311</p>
+            <p class="compact-text">{{ $company->company_name }} {{ $company->regency }} | {{ $company->street_address }},
+                {{ $company->village }}, {{ $company->district }}, {{ $company->regency }}, {{ $company->province }} {{ $company->postal_code }}</p>
         </div>
     </div>
 </body>
