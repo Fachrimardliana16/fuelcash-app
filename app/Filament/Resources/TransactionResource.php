@@ -135,7 +135,7 @@ class TransactionResource extends Resource
                             ->label('Jumlah')
                             ->placeholder('Masukkan jumlah')
                             ->mask('999999999')
-                            ->live(debounce: 300)
+                            ->live(debounce: 500)
                             ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 $fuelId = $get('fuel_id');
                                 if ($fuelId && $state) {
