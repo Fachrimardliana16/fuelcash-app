@@ -21,7 +21,7 @@ class BalanceResource extends Resource
     protected static ?string $model = Balance::class;
     protected static ?string $navigationIcon = 'heroicon-o-wallet';
     protected static ?string $navigationLabel = 'Saldo';
-    protected static ?string $navigationGroup = 'Keuangan';
+    protected static ?string $navigationGroup = 'Manajemen Kas BBM';
 
     public static function form(Form $form): Form
     {

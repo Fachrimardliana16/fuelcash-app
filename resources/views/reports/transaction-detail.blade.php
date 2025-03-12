@@ -21,14 +21,16 @@
             text-transform: uppercase;
             line-height: 1.2;
             white-space: nowrap;
-            color: #000;  /* Change from blue to black */
+            color: #000;
+            /* Change from blue to black */
         }
 
         .company-address {
             font-size: 11px;
             margin-top: 3px;
             line-height: 1.2;
-            color: #333;  /* Change from #666 to #333 for better readability */
+            color: #333;
+            /* Change from #666 to #333 for better readability */
         }
 
         .document-title {
@@ -39,7 +41,8 @@
             padding: 10px;
             background-color: #f3f4f6;
             border-radius: 5px;
-            color: #000;  /* Change from #1f2937 to #000 */
+            color: #000;
+            /* Change from #1f2937 to #000 */
         }
 
         .header {
@@ -178,12 +181,14 @@
             width: 100%;
             display: table;
         }
+
         .letterhead-left {
             display: table-cell;
             width: 12%;
             vertical-align: top;
             padding-right: 15px;
         }
+
         .letterhead-right {
             display: table-cell;
             width: 88%;
@@ -191,10 +196,12 @@
             text-align: center;
             padding-right: 12%;
         }
+
         .company-logo {
             max-width: 80px;
             height: auto;
         }
+
         .govt-name {
             font-size: 13px;
             font-weight: bold;
@@ -202,6 +209,7 @@
             text-transform: uppercase;
             line-height: 1.2;
         }
+
         .regency-name {
             font-size: 13px;
             font-weight: bold;
@@ -209,6 +217,7 @@
             text-transform: uppercase;
             line-height: 1.2;
         }
+
         .company-type {
             display: inline;
         }
@@ -220,7 +229,7 @@
 
     <div class="letterhead">
         <div class="letterhead-left">
-            @if($company->company_logo)
+            @if ($company->company_logo)
                 <img src="{{ storage_path('app/public/' . $company->company_logo) }}" class="company-logo">
             @endif
         </div>
@@ -336,7 +345,7 @@
         <p>Dokumen ini dihasilkan secara otomatis oleh sistem FuelCash App &copy; {{ date('Y') }}</p>
 
         <div class="footer-info">
-            <span>ID: {{ $transaction->transaction_number }}</span>
+            <span>No. Transaksi: {{ $transaction->transaction_number }}</span>
             <span>Diunduh oleh: {{ auth()->user()->name ?? 'User' }}</span>
             <span>Tanggal Unduh: {{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('d F Y H:i:s') }}</span>
         </div>

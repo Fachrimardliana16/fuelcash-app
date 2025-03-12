@@ -18,7 +18,7 @@ class FuelResource extends Resource
     protected static ?string $model = Fuel::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-fire';
-    protected static ?string $navigationGroup = 'Manajemen BBM';
+    protected static ?string $navigationGroup = 'Manajemen Kas BBM';
     protected static ?int $navigationSort = 2;
     protected static ?string $navigationLabel = 'Data BBM';
 
