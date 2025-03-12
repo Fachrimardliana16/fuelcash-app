@@ -108,10 +108,13 @@ class ViewBalance extends ViewRecord
                 ->action(function () {
                     $record = $this->getRecord();
                     $terbilang = new \App\Helpers\Terbilang();
+                    $company = \App\Models\CompanySetting::first();
 
                     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.fuel-request-letter', [
                         'balance' => $record,
-                        'terbilang' => $terbilang->convert($record->deposit_amount)
+                        'terbilang' => $terbilang->convert($record->deposit_amount),
+                        'company' => $company,
+                        'signatures' => \App\Models\Signature::orderBy('order')->get()
                     ]);
 
                     return response()->streamDownload(function () use ($pdf) {
