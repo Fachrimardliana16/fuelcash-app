@@ -19,8 +19,9 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'Sistem';
+    protected static ?string $navigationGroup = 'Configuration App';
     protected static ?int $navigationSort = 1;
+    protected static ?int $navigationGroupSort = 4; // Changed from ?string to ?int
     protected static ?string $navigationLabel = 'User';
 
     public static function form(Form $form): Form
@@ -128,18 +129,41 @@ class UserResource extends Resource
                     ->query(fn(Builder $query): Builder => $query->whereMonth('created_at', now()->month)),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make()
-                        ->label('Ubah'),
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
                     Tables\Actions\Action::make('verify')
                         ->label('Verifikasi Email')
-                        ->icon('heroicon-o-check')
+                        ->color('success')
+                        ->icon('heroicon-m-check')
                         ->requiresConfirmation()
-                        ->visible(fn($record) => is_null($record->email_verified_at))
-                        ->action(fn($record) => $record->update(['email_verified_at' => now()])),
+                        ->action(function ($record) {
+                            $record->email_verified_at = now();
+                            $record->save();
+                        })
+                        ->visible(fn($record) => is_null($record->email_verified_at)),
                     Tables\Actions\DeleteAction::make()
-                        ->label('Hapus'),
-                ]),
+                        ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Kendaraan')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data kendaraan ini?')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal'),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

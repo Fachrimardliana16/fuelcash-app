@@ -13,6 +13,7 @@ class Transaction extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'vehicles_id',
         'vehicle_type_id',
         'license_plate',
@@ -38,6 +39,11 @@ class Transaction extends Model
     public function balance()
     {
         return $this->belongsTo(Balance::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function vehicle(): BelongsTo

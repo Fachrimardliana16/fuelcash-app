@@ -69,7 +69,7 @@
 
     <div class="vehicle-info">
         <h2>Informasi Kendaraan</h2>
-        <p><strong>Plat Nomor:</strong> {{ $vehicle->license_plate }}</p>
+        <p><strong>Nomor Kendaraan:</strong> {{ $vehicle->license_plate }}</p>
         <p><strong>Jenis Kendaraan:</strong> {{ $vehicle->vehicleType->name }}</p>
         <p><strong>Pemilik:</strong> {{ $vehicle->owner }}</p>
         <p><strong>Status:</strong> {{ $vehicle->isactive ? 'Aktif' : 'Tidak Aktif' }}</p>

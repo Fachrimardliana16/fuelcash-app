@@ -18,8 +18,9 @@ class FuelResource extends Resource
     protected static ?string $model = Fuel::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-fire';
-    protected static ?string $navigationGroup = 'Manajemen Kas BBM';
+    protected static ?string $navigationGroup = 'Data Master BBM';
     protected static ?int $navigationSort = 2;
+    protected static ?int $navigationGroupSort = 1; // Changed from ?string to ?int
     protected static ?string $navigationLabel = 'Data BBM';
 
     public static function form(Form $form): Form
@@ -121,13 +122,11 @@ class FuelResource extends Resource
                 Tables\Columns\TextColumn::make('unit')
                     ->label('Satuan')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('isactive')
+                Tables\Columns\ToggleColumn::make('isactive')
                     ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal Dibuat')
                     ->dateTime('d F Y H:i')
@@ -152,18 +151,31 @@ class FuelResource extends Resource
                     ->label('Terhapus'),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat'),
                     Tables\Actions\EditAction::make()
-                        ->label('Edit'),
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
                         ->modalHeading('Hapus BBM')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus data BBM ini?'),
-                    Tables\Actions\RestoreAction::make()
-                        ->label('Pulihkan'),
-                ]),
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data BBM ini?')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal'),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

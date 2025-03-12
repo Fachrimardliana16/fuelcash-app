@@ -256,8 +256,10 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class="label">Dibuat:</td>
-                    <td class="value" colspan="3">
+                    <td class="label">Di Input:</td>
+                    <td class="value">{{ $transaction->user->name ?? 'Unknown' }}</td>
+                    <td class="label">Tanggal Di Buat:</td>
+                    <td class="value">
                         {{ $transaction->created_at ? \Carbon\Carbon::parse($transaction->created_at)->setTimezone('Asia/Jakarta')->format('d F Y H:i') : '-' }}
                     </td>
                 </tr>
@@ -269,7 +271,7 @@
         <div class="section-title">Data Kendaraan</div>
         <table class="data-table">
             <tr>
-                <td class="label">Plat Nomor</td>
+                <td class="label">Nomor Kendaraan</td>
                 <td class="value">{{ $transaction->vehicle->license_plate ?? '-' }}</td>
             </tr>
             <tr>
@@ -334,9 +336,9 @@
 
     @if ($invoiceBase64)
         <div class="section">
-            <div class="section-title">Nota/Kwitansi</div>
+            <div class="section-title">Form Permintaan</div>
             <div class="receipt-container">
-                <img src="{!! $invoiceBase64 !!}" alt="Nota/Kwitansi" class="receipt-image">
+                <img src="{!! $invoiceBase64 !!}" alt="Form Permintaan" class="receipt-image">
             </div>
         </div>
     @endif

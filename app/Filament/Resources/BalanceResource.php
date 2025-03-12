@@ -2,26 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Balance;
-use Filament\Forms\Form;
-use App\Models\Signature;
-use Filament\Tables\Table;
-use App\Models\CompanySetting;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\BalanceResource\Pages;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\BalanceResource\RelationManagers;
+use App\Models\Balance;
+use App\Models\CompanySetting;
+use App\Models\Signature;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class BalanceResource extends Resource
 {
     protected static ?string $model = Balance::class;
     protected static ?string $navigationIcon = 'heroicon-o-wallet';
-    protected static ?string $navigationLabel = 'Saldo';
+    protected static ?string $navigationLabel = 'Saldo Bahan Bakar';
     protected static ?string $navigationGroup = 'Manajemen Kas BBM';
+    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationGroupSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -29,6 +33,9 @@ class BalanceResource extends Resource
 
         return $form
             ->schema([
+                Forms\Components\Hidden::make('user_id')
+                    ->default(fn() => Auth::id()),
+
                 Forms\Components\Section::make('Informasi Deposit')
                     ->description('Masukkan detail deposit')
                     ->schema([
@@ -46,11 +53,10 @@ class BalanceResource extends Resource
                             ->required()
                             ->numeric()
                             ->prefix('Rp')
-                            ->inputMode('numeric') // Add this
+                            ->inputMode('numeric')
                             ->placeholder('Masukkan jumlah deposit')
-                            ->live(debounce: 500)
+                            ->live(onBlur: true, debounce: 500) // Updated to use onBlur and debounce
                             ->minValue(1)
-                            // Removed step(1000)
                             ->validationMessages([
                                 'required' => 'Silakan masukkan jumlah deposit',
                                 'numeric' => 'Jumlah harus berupa angka',
@@ -100,6 +106,11 @@ class BalanceResource extends Resource
                     ->sortable()
                     ->color(fn(Balance $record): string => $record->remaining_balance > 1000000 ? 'success' : 'danger'),
 
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Dibuat Oleh')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat Pada')
                     ->dateTime()
@@ -110,9 +121,10 @@ class BalanceResource extends Resource
             ->headerActions([
                 Tables\Actions\Action::make('generateBalanceReport')
                     ->label('Buat Laporan')
+                    ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
-                        $balances = Balance::with('transactions')
+                        $balances = Balance::with(['transactions', 'user'])
                             ->orderBy('date', 'desc')
                             ->get();
 
@@ -134,27 +146,42 @@ class BalanceResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Lihat'),
-                Tables\Actions\EditAction::make()->label('Ubah'),
-                Tables\Actions\Action::make('request-letter')
-                    ->label('Surat Pengajuan')
-                    ->icon('heroicon-o-document-text')
-                    ->color('success')
-                    ->action(function (Balance $record) {
-                        $terbilang = new \App\Helpers\Terbilang();
-                        $company = CompanySetting::first();
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Transaksi')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data transaksi ini?')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal')
+                        ->before(function (Tables\Actions\DeleteAction $action) {
+                            if ($action->getRecord()->balance_id) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Transaksi tidak dapat dihapus')
+                                    ->body('Transaksi ini terkait dengan saldo')
+                                    ->send();
 
-                        $pdf = Pdf::loadView('pdf.fuel-request-letter', [
-                            'balance' => $record,
-                            'terbilang' => $terbilang->convert($record->deposit_amount),
-                            'company' => $company,
-                            'signatures' => Signature::orderBy('order')->get()
-                        ]);
-
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->output();
-                        }, 'surat-pengajuan-bbm-' . $record->date . '.pdf');
-                    }),
+                                $action->cancel();
+                            }
+                        }),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

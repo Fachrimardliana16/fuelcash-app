@@ -10,11 +10,13 @@ return new class extends Migration
     {
         Schema::create('vehicles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('vehicle_type_id')->constrained('vehicle_types');
-            $table->string('license_plate');
+            $table->string('name');
+            $table->string('license_plate')->unique();
             $table->string('owner');
-            $table->boolean('isactive')->default(true);
+            $table->foreignId('vehicle_type_id')->constrained();
+            $table->boolean('isactive')->default(true)->index();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

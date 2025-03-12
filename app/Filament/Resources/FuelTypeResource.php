@@ -18,8 +18,9 @@ class FuelTypeResource extends Resource
     protected static ?string $model = FuelType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
-    protected static ?string $navigationGroup = 'Manajemen Kas BBM';
+    protected static ?string $navigationGroup = 'Data Master BBM';
     protected static ?int $navigationSort = 1;
+    protected static ?int $navigationGroupSort = 1; // Changed from ?string to ?int
     protected static ?string $navigationLabel = 'Jenis BBM';
 
     public static function form(Form $form): Form
@@ -76,24 +77,23 @@ class FuelTypeResource extends Resource
                     ->sortable()
                     ->tooltip('Nama Jenis BBM'),
 
-                Tables\Columns\IconColumn::make('isactive')
+                Tables\Columns\ToggleColumn::make('isactive')
                     ->label('Status Aktif')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                    ->onColor('success')
+                    ->offColor('danger')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal Dibuat')
                     ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('updated_at')
                     ->label('Terakhir Diperbarui')
                     ->dateTime('d M Y H:i')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -107,18 +107,31 @@ class FuelTypeResource extends Resource
                     ->label('Data Terhapus'),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat'),
                     Tables\Actions\EditAction::make()
-                        ->label('Ubah'),
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
                         ->modalHeading('Hapus Jenis BBM')
                         ->modalDescription('Apakah Anda yakin ingin menghapus jenis BBM ini?')
                         ->modalSubmitActionLabel('Ya, Hapus')
                         ->modalCancelActionLabel('Batal'),
-                ]),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

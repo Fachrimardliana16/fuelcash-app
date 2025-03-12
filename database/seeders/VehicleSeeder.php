@@ -19,8 +19,12 @@ class VehicleSeeder extends Seeder
         $cityCodes = ['B', 'D', 'E', 'F', 'L', 'N', 'T', 'W', 'S'];
 
         for ($i = 0; $i < 20; $i++) {
+            $vehicleTypeId = $faker->randomElement($vehicleTypeIds);
+            $vehicleType = VehicleType::find($vehicleTypeId);
+
             Vehicle::create([
-                'vehicle_type_id' => $faker->randomElement($vehicleTypeIds),
+                'name' => $vehicleType ? $vehicleType->name . ' - ' . $faker->word : 'Vehicle ' . ($i + 1),
+                'vehicle_type_id' => $vehicleTypeId,
                 'license_plate' => sprintf(
                     '%s %d %s',
                     $faker->randomElement($cityCodes),

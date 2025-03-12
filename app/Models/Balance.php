@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Balance extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'date',
         'deposit_amount',
         'remaining_balance'
@@ -19,6 +21,11 @@ class Balance extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     protected static function boot()

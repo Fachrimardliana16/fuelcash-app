@@ -11,9 +11,10 @@ return new class extends Migration
         Schema::create('vehicle_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('desc')->nullable();
-            $table->boolean('isactive')->default(true);
+            $table->text('description')->nullable();
+            $table->boolean('isactive')->default(true)->index();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -27,7 +27,7 @@ class TransactionsRelationManager extends RelationManager
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('vehicle.license_plate')
-                    ->label('Plat Nomor')
+                    ->label('Nomor Kendaraan')
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
@@ -73,7 +73,7 @@ class TransactionsRelationManager extends RelationManager
                     ->circular(),
 
                 Tables\Columns\ImageColumn::make('invoice')
-                    ->label('Nota/Kwitansi')
+                    ->label('Form Permintaan')
                     ->toggleable()
                     ->circular(),
             ])

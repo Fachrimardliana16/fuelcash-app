@@ -12,14 +12,14 @@ class VehicleTypeSeeder extends Seeder
         DB::table('vehicle_types')->insert([
             [
                 'name' => 'Roda Dua',
-                'desc' => 'Motor',
+                'description' => 'Motor',
                 'isactive' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'Roda Empat',
-                'desc' => 'Mobil, Truck',
+                'description' => 'Mobil, Truck',
                 'isactive' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
