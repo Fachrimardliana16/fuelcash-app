@@ -48,7 +48,7 @@ class BalanceResource extends Resource
                             ->prefix('Rp')
                             ->inputMode('numeric') // Add this
                             ->placeholder('Masukkan jumlah deposit')
-                            ->live(debounce: 300)
+                            ->live(debounce: 500)
                             ->minValue(1)
                             // Removed step(1000)
                             ->validationMessages([
