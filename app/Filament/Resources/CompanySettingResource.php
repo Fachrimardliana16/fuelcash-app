@@ -29,17 +29,16 @@ class CompanySettingResource extends Resource
                             ->required()
                             ->placeholder('contoh: PEMERINTAH KABUPATEN PURBALINGGA')
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('company_type')
-                            ->label('Jenis Perusahaan')
-                            ->required()
-                            ->placeholder('contoh: PERUSAHAAN UMUM DAERAH AIR MINUM')
-                            ->maxLength(255),
-                    ])->columns(2),
+                    ])->columns(1),
 
                 Forms\Components\Section::make('Company Information')
                     ->schema([
-                        Forms\Components\TextInput::make('company_name')
+                        Forms\Components\Textarea::make('company_name')
+                            ->label('Nama Perusahaan')
                             ->required()
+                            ->placeholder('contoh: PERUMDA AIR MINUM TIRTA PERWIRA KABUPATEN PURBALINGGA')
+                            ->autosize()
+                            ->rows(2)
                             ->maxLength(255),
                         Forms\Components\FileUpload::make('company_logo')
                             ->image()

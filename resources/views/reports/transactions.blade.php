@@ -178,8 +178,7 @@
         </div>
         <div class="letterhead-right">
             <div class="govt-name">{{ $company->government_name }}</div>
-            <div class="company-name">{{ $company->company_type }} {{ $company->company_name }}</div>
-            <div class="regency-name">{{ strtoupper($company->regency) }}</div>
+            <div class="company-name">{!! nl2br(e($company->company_name)) !!}</div>
             <div class="company-address">
                 {{ $company->street_address }} Telp. {{ $company->phone_number }}
             </div>
