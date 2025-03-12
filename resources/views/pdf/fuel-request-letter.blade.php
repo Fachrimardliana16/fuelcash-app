@@ -80,9 +80,10 @@
         .recipient {
             margin-bottom: 15px;
             line-height: 1.3;
-            text-align: right;
+            text-align: left;
             float: right;
-            width: 50%;
+            width: 70%;
+            padding-left: 50%;
         }
 
         .letter-body {
@@ -285,13 +286,11 @@
 <body>
     <div class="container">
         <!-- Recipient on right -->
-        <div class="recipient" style="width: 38%; margin-right: 0;">
+        <div class="recipient" style="width: 45%; margin-right: 0; padding-left: 50%;">
             <p class="compact-text" style="text-align: left;">
                 Kepada Yth.<br>
                 Direktur Utama<br>
-                <strong>{{ $company->company_type }}</strong><br>
-                <strong>{{ $company->company_name }}</strong><br>
-                <strong>{{ $company->regency }}</strong><br>
+                <strong>{!! nl2br(e($company->company_name)) !!}</strong><br>
                 di Tempat
             </p>
         </div>
@@ -349,7 +348,7 @@
             <div class="signature-bottom">
                 @if($bottomSignature = $signatures->where('order', '>=', 3)->first())
                 <p class="signature-title">{{ $bottomSignature->title }},<br>{{ $bottomSignature->position }}<br>
-                    {{ $company->company_name }} {{ $company->regency }}</p>
+                    {!! nl2br(e($company->company_name)) !!}</p>
                 @if($bottomSignature->show_stamp)
                 <div class="stamp-area">
                     <div class="stamp-placeholder">Stempel</div>
@@ -365,7 +364,7 @@
 
         <!-- Footer -->
         <div class="letter-footer">
-            <p class="compact-text">{{ $company->company_name }} {{ $company->regency }} | {{ $company->street_address }},
+            <p class="compact-text">{!! nl2br(e($company->company_name)) !!} | {{ $company->street_address }},
                 {{ $company->village }}, {{ $company->district }}, {{ $company->regency }}, {{ $company->province }} {{ $company->postal_code }}</p>
         </div>
     </div>
