@@ -2,17 +2,19 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BalanceResource\Pages;
-use App\Filament\Resources\BalanceResource\RelationManagers;
-use App\Models\Balance;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Balance;
+use Filament\Forms\Form;
+use App\Models\Signature;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\CompanySetting;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\BalanceResource\Pages;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Resources\BalanceResource\RelationManagers;
 
 class BalanceResource extends Resource
 {
@@ -114,10 +116,13 @@ class BalanceResource extends Resource
                             ->orderBy('date', 'desc')
                             ->get();
 
+                        $company = CompanySetting::first();
+
                         $pdf = Pdf::loadView('pdf.balance-report', [
                             'balances' => $balances,
                             'total_deposit' => $balances->sum('deposit_amount'),
-                            'current_balance' => $balances->last()->remaining_balance
+                            'current_balance' => $balances->last()->remaining_balance,
+                            'company' => $company
                         ]);
 
                         return response()->streamDownload(function () use ($pdf) {
@@ -136,12 +141,14 @@ class BalanceResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->action(function (Balance $record) {
-                        // Helper function untuk mengubah angka menjadi kata
                         $terbilang = new \App\Helpers\Terbilang();
+                        $company = CompanySetting::first();
 
                         $pdf = Pdf::loadView('pdf.fuel-request-letter', [
                             'balance' => $record,
-                            'terbilang' => $terbilang->convert($record->deposit_amount)
+                            'terbilang' => $terbilang->convert($record->deposit_amount),
+                            'company' => $company,
+                            'signatures' => Signature::orderBy('order')->get()
                         ]);
 
                         return response()->streamDownload(function () use ($pdf) {

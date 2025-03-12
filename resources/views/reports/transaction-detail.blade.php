@@ -14,24 +14,21 @@
             padding: 20px;
         }
 
-        .company-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #2563eb;
-        }
-
         .company-name {
-            font-size: 22px;
+            font-size: 15px;
             font-weight: bold;
-            color: #2563eb;
-            margin: 0;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            line-height: 1.2;
+            white-space: nowrap;
+            color: #000;  /* Change from blue to black */
         }
 
         .company-address {
             font-size: 11px;
-            color: #666;
-            margin-top: 5px;
+            margin-top: 3px;
+            line-height: 1.2;
+            color: #333;  /* Change from #666 to #333 for better readability */
         }
 
         .document-title {
@@ -42,7 +39,7 @@
             padding: 10px;
             background-color: #f3f4f6;
             border-radius: 5px;
-            color: #1f2937;
+            color: #000;  /* Change from #1f2937 to #000 */
         }
 
         .header {
@@ -173,17 +170,69 @@
             transform: rotate(-45deg);
             z-index: -1;
         }
+
+        .letterhead {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #000;
+            width: 100%;
+            display: table;
+        }
+        .letterhead-left {
+            display: table-cell;
+            width: 12%;
+            vertical-align: top;
+            padding-right: 15px;
+        }
+        .letterhead-right {
+            display: table-cell;
+            width: 88%;
+            vertical-align: middle;
+            text-align: center;
+            padding-right: 12%;
+        }
+        .company-logo {
+            max-width: 80px;
+            height: auto;
+        }
+        .govt-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .regency-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .company-type {
+            display: inline;
+        }
     </style>
 </head>
 
 <body>
     <div class="watermark">FuelCash App</div>
 
-    <div class="company-header">
-        <h1 class="company-name">FUEL CASH APP</h1>
-        <div class="company-address">
-            Jl. Perusahaan No. 123, Kota Jakarta<br>
-            Telp: (021) 1234-5678 | Email: info@fuelcash.app
+    <div class="letterhead">
+        <div class="letterhead-left">
+            @if($company->company_logo)
+                <img src="{{ storage_path('app/public/' . $company->company_logo) }}" class="company-logo">
+            @endif
+        </div>
+        <div class="letterhead-right">
+            <div class="govt-name">{{ $company->government_name }}</div>
+            <div class="company-name">
+                <span class="company-type">{{ $company->company_type }}</span> {{ $company->company_name }}
+            </div>
+            <div class="regency-name">{{ strtoupper($company->regency) }}</div>
+            <div class="company-address">
+                {{ $company->street_address }} Telp. {{ $company->phone_number }}
+            </div>
         </div>
     </div>
 
@@ -194,7 +243,7 @@
             <table>
                 <tr>
                     <td class="label" style="width:25%">No. Transaksi:</td>
-                    <td class="value" style="width:25%"><strong>#{{ $transaction->id }}</strong></td>
+                    <td class="value" style="width:25%"><strong>{{ $transaction->transaction_number }}</strong></td>
                     <td class="label" style="width:25%">Tanggal Transaksi:</td>
                     <td class="value" style="width:25%">
                         {{ $transaction->usage_date ? \Carbon\Carbon::parse($transaction->usage_date)->setTimezone('Asia/Jakarta')->format('d F Y') : '-' }}
@@ -290,7 +339,7 @@
         <p>Dokumen ini dihasilkan secara otomatis oleh sistem FuelCash App &copy; {{ date('Y') }}</p>
 
         <div class="footer-info">
-            <span>ID: {{ $transaction->id }}</span>
+            <span>ID: {{ $transaction->transaction_number }}</span>
             <span>Diunduh oleh: {{ auth()->user()->name ?? 'User' }}</span>
             <span>Tanggal Unduh: {{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('d F Y H:i:s') }}</span>
         </div>

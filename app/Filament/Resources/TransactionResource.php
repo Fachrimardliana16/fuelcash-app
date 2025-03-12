@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TransactionResource\Pages;
 use App\Models\Transaction;
 use App\Models\Balance;
+use App\Models\CompanySetting;  // Add this import
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -252,6 +253,11 @@ class TransactionResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('transaction_number')
+                    ->label('No. Transaksi')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable(),
                 Tables\Columns\TextColumn::make('id')
                     ->label('ID')
                     ->sortable()
@@ -412,10 +418,14 @@ class TransactionResource extends Resource
 
                         $dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
 
+                        // Get company data
+                        $company = CompanySetting::first();
+
                         $pdf = Pdf::loadView('reports.transactions', [
                             'transactions' => $transactions,
                             'dateRange' => $dateRange,
-                            'initialBalance' => $initialBalance
+                            'initialBalance' => $initialBalance,
+                            'company' => $company,
                         ]);
 
                         return response()->streamDownload(function () use ($pdf) {

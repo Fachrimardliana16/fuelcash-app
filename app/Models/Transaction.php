@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class Transaction extends Model
 {
@@ -24,7 +25,8 @@ class Transaction extends Model
         'usage_description',
         'fuel_receipt',
         'invoice',
-        'balance_id'
+        'balance_id',
+        'transaction_number',
     ];
 
     protected $casts = [
@@ -56,5 +58,63 @@ class Transaction extends Model
     public function fuelType()
     {
         return $this->belongsTo(FuelType::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            $transaction->transaction_number = static::generateTransactionNumber($transaction->usage_date);
+        });
+    }
+
+    protected static function generateTransactionNumber($usage_date)
+    {
+        // Convert usage_date string to Carbon instance if it isn't already
+        $date = $usage_date instanceof Carbon ? $usage_date : Carbon::parse($usage_date);
+
+        $month = $date->month;
+        $year = $date->year;
+
+        // Get the last transaction number for the specific month and year
+        $lastTransaction = static::whereYear('usage_date', $year)
+            ->whereMonth('usage_date', $month)
+            ->latest()
+            ->first();
+
+        // Get the sequence number
+        if (!$lastTransaction) {
+            $sequenceNumber = 1;
+        } else {
+            $lastNumber = (int) substr($lastTransaction->transaction_number, 0, 3);
+            $sequenceNumber = $lastNumber + 1;
+        }
+
+        // Convert month to roman numerals
+        $romanMonth = static::numberToRoman($month);
+
+        // Format: 001/KRT-BBM/XII/2024
+        return sprintf("%03d/KRT-BBM/%s/%d", $sequenceNumber, $romanMonth, $year);
+    }
+
+    protected static function numberToRoman($number)
+    {
+        $romans = [
+            1 => "I",
+            2 => "II",
+            3 => "III",
+            4 => "IV",
+            5 => "V",
+            6 => "VI",
+            7 => "VII",
+            8 => "VIII",
+            9 => "IX",
+            10 => "X",
+            11 => "XI",
+            12 => "XII"
+        ];
+
+        return $romans[$number];
     }
 }

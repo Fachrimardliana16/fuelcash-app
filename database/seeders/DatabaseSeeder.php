@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             FuelSeeder::class,
             VehicleSeeder::class,
             UserSeeder::class,
+            CompanySettingSeeder::class,
+            SignatureSeeder::class,
         ]);
 
         // User::factory(10)->create();

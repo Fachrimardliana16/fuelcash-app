@@ -119,12 +119,71 @@
         .volume-col {
             width: 55px;
         }
+
+        .letterhead {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #000;
+            width: 100%;
+            display: table;
+        }
+        .letterhead-left {
+            display: table-cell;
+            width: 15%;
+            vertical-align: top;
+            padding-right: 20px;
+        }
+        .letterhead-right {
+            display: table-cell;
+            width: 85%;
+            vertical-align: middle;
+            text-align: center;
+            padding-right: 15%;
+        }
+        .company-logo {
+            max-width: 100px;
+            height: auto;
+        }
+        .govt-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .regency-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .company-address {
+            font-size: 12px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <img src="{{ storage_path('app/public/kop_surat.png') }}" class="letterhead-img">
+    <div class="letterhead">
+        <div class="letterhead-left">
+            @if($company->company_logo)
+                <img src="{{ storage_path('app/public/' . $company->company_logo) }}" class="company-logo">
+            @endif
+        </div>
+        <div class="letterhead-right">
+            <div class="govt-name">{{ $company->government_name }}</div>
+            <div class="company-name">{{ $company->company_type }} {{ $company->company_name }}</div>
+            <div class="regency-name">{{ strtoupper($company->regency) }}</div>
+            <div class="company-address">
+                {{ $company->street_address }} Telp. {{ $company->phone_number }}
+            </div>
+        </div>
     </div>
 
     <div class="title">LAPORAN TRANSAKSI BBM</div>
