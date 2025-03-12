@@ -21,14 +21,16 @@
             text-transform: uppercase;
             line-height: 1.2;
             white-space: nowrap;
-            color: #000;  /* Change from blue to black */
+            color: #000;
+            /* Change from blue to black */
         }
 
         .company-address {
             font-size: 11px;
             margin-top: 3px;
             line-height: 1.2;
-            color: #333;  /* Change from #666 to #333 for better readability */
+            color: #333;
+            /* Change from #666 to #333 for better readability */
         }
 
         .document-title {
@@ -39,7 +41,8 @@
             padding: 10px;
             background-color: #f3f4f6;
             border-radius: 5px;
-            color: #000;  /* Change from #1f2937 to #000 */
+            color: #000;
+            /* Change from #1f2937 to #000 */
         }
 
         .header {
@@ -178,12 +181,14 @@
             width: 100%;
             display: table;
         }
+
         .letterhead-left {
             display: table-cell;
             width: 12%;
             vertical-align: top;
             padding-right: 15px;
         }
+
         .letterhead-right {
             display: table-cell;
             width: 88%;
@@ -191,10 +196,12 @@
             text-align: center;
             padding-right: 12%;
         }
+
         .company-logo {
             max-width: 80px;
             height: auto;
         }
+
         .govt-name {
             font-size: 13px;
             font-weight: bold;
@@ -202,6 +209,7 @@
             text-transform: uppercase;
             line-height: 1.2;
         }
+
         .regency-name {
             font-size: 13px;
             font-weight: bold;
@@ -209,6 +217,7 @@
             text-transform: uppercase;
             line-height: 1.2;
         }
+
         .company-type {
             display: inline;
         }
@@ -220,7 +229,7 @@
 
     <div class="letterhead">
         <div class="letterhead-left">
-            @if($company->company_logo)
+            @if ($company->company_logo)
                 <img src="{{ storage_path('app/public/' . $company->company_logo) }}" class="company-logo">
             @endif
         </div>
@@ -247,8 +256,10 @@
                     </td>
                 </tr>
                 <tr>
-                    <td class="label">Dibuat:</td>
-                    <td class="value" colspan="3">
+                    <td class="label">Di Input:</td>
+                    <td class="value">{{ $transaction->user->name ?? 'Unknown' }}</td>
+                    <td class="label">Tanggal Di Buat:</td>
+                    <td class="value">
                         {{ $transaction->created_at ? \Carbon\Carbon::parse($transaction->created_at)->setTimezone('Asia/Jakarta')->format('d F Y H:i') : '-' }}
                     </td>
                 </tr>
@@ -260,7 +271,7 @@
         <div class="section-title">Data Kendaraan</div>
         <table class="data-table">
             <tr>
-                <td class="label">Plat Nomor</td>
+                <td class="label">Nomor Kendaraan</td>
                 <td class="value">{{ $transaction->vehicle->license_plate ?? '-' }}</td>
             </tr>
             <tr>
@@ -325,9 +336,9 @@
 
     @if ($invoiceBase64)
         <div class="section">
-            <div class="section-title">Nota/Kwitansi</div>
+            <div class="section-title">Form Permintaan</div>
             <div class="receipt-container">
-                <img src="{!! $invoiceBase64 !!}" alt="Nota/Kwitansi" class="receipt-image">
+                <img src="{!! $invoiceBase64 !!}" alt="Form Permintaan" class="receipt-image">
             </div>
         </div>
     @endif
@@ -336,7 +347,7 @@
         <p>Dokumen ini dihasilkan secara otomatis oleh sistem FuelCash App &copy; {{ date('Y') }}</p>
 
         <div class="footer-info">
-            <span>ID: {{ $transaction->transaction_number }}</span>
+            <span>No. Transaksi: {{ $transaction->transaction_number }}</span>
             <span>Diunduh oleh: {{ auth()->user()->name ?? 'User' }}</span>
             <span>Tanggal Unduh: {{ \Carbon\Carbon::now()->setTimezone('Asia/Jakarta')->format('d F Y H:i:s') }}</span>
         </div>

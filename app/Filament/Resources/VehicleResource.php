@@ -17,8 +17,9 @@ class VehicleResource extends Resource
 {
     protected static ?string $model = Vehicle::class;
     protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationGroup = 'Manajemen Kendaraan';
+    protected static ?string $navigationGroup = 'Data Master Kendaraan';
     protected static ?int $navigationSort = 2;
+    protected static ?int $navigationGroupSort = 2; // Changed from ?string to ?int
     protected static ?string $navigationLabel = 'Data Kendaraan';
     protected static ?string $modelLabel = 'Kendaraan';
     protected static ?string $pluralModelLabel = 'Kendaraan';
@@ -38,15 +39,15 @@ class VehicleResource extends Resource
                                 'required' => 'Jenis kendaraan harus dipilih',
                             ]),
                         Forms\Components\TextInput::make('license_plate')
-                            ->label('Plat Nomor')
+                            ->label('Nomor Kendaraan')
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
                             ->regex('/^[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{1,3}$/')
                             ->validationMessages([
-                                'required' => 'Plat nomor harus diisi',
-                                'regex' => 'Format plat nomor tidak valid',
-                                'unique' => 'Plat nomor sudah terdaftar',
+                                'required' => 'Nomor Kendaraan harus diisi',
+                                'regex' => 'Format Nomor Kendaraan tidak valid',
+                                'unique' => 'Nomor Kendaraan sudah terdaftar',
                             ]),
                     ])->columns(2),
 
@@ -78,22 +79,19 @@ class VehicleResource extends Resource
                     ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('license_plate')
-                    ->label('Plat Nomor')
+                    ->label('Nomor Kendaraan')
                     ->searchable()
                     ->copyable()
-                    ->copyMessage('Plat nomor berhasil disalin')
+                    ->copyMessage('Nomor Kendaraan berhasil disalin')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('owner')
                     ->label('Pemilik')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\IconColumn::make('isactive')
+                Tables\Columns\ToggleColumn::make('isactive')
                     ->label('Status')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                    ->onColor('success')
+                    ->offColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y, H:i')
@@ -117,19 +115,31 @@ class VehicleResource extends Resource
                     ->falseLabel('Tidak Aktif'),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
                 Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
-                        ->label('Lihat'),
                     Tables\Actions\EditAction::make()
-                        ->label('Edit'),
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
                     Tables\Actions\DeleteAction::make()
                         ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
                         ->requiresConfirmation()
                         ->modalHeading('Hapus Kendaraan')
                         ->modalDescription('Apakah Anda yakin ingin menghapus data kendaraan ini?')
                         ->modalSubmitActionLabel('Ya, Hapus')
                         ->modalCancelActionLabel('Batal'),
-                ]),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

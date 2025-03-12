@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained(); // Add user_id to track who created this
             $table->string('transaction_number')->unique();
             $table->foreignId('vehicles_id')->constrained();
             $table->foreignId('vehicle_type_id')->constrained();

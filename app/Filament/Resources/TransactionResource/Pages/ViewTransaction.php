@@ -111,7 +111,7 @@ class ViewTransaction extends ViewRecord
                     ->description('Informasi kendaraan yang digunakan')
                     ->schema([
                         Components\TextEntry::make('vehicle.license_plate')
-                            ->label('Plat Nomor'),
+                            ->label('Nomor Kendaraan'),
                         Components\TextEntry::make('vehicle.vehicleType.name')
                             ->label('Jenis Kendaraan'),
                         Components\TextEntry::make('owner')
@@ -142,17 +142,27 @@ class ViewTransaction extends ViewRecord
                         Components\ImageEntry::make('fuel_receipt')
                             ->label('Struk BBM')
                             ->columnSpanFull()
-                            ->height(400)
+                            ->height(300)
+                            ->width(300)
+                            ->extraImgAttributes([
+                                'class' => 'object-contain max-w-full',
+                                'style' => 'margin: 0 auto;'
+                            ])
                             ->visible(fn($record) => !empty($record->fuel_receipt)),
                         Components\ImageEntry::make('invoice')
-                            ->label('Nota/Kwitansi')
+                            ->label('Form Permintaan')
                             ->columnSpanFull()
-                            ->height(400)
+                            ->height(300)
+                            ->width(300)
+                            ->extraImgAttributes([
+                                'class' => 'object-contain max-w-full',
+                                'style' => 'margin: 0 auto;'
+                            ])
                             ->visible(fn($record) => !empty($record->invoice)),
                     ]),
 
-                Components\Section::make('Informasi Sistem')
-                    ->description('Data yang direkam oleh sistem')
+                Components\Section::make('Informasi Configuration App')
+                    ->description('Data yang direkam oleh Configuration App')
                     ->schema([
                         Components\TextEntry::make('created_at')
                             ->label('Dibuat Pada')

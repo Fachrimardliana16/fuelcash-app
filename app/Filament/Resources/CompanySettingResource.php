@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\Storage;
 class CompanySettingResource extends Resource
 {
     protected static ?string $model = CompanySetting::class;
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static ?string $navigationGroup = 'Settings';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
+    protected static ?string $navigationGroup = 'Configuration App';
+    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationGroupSort = 4;
 
     public static function form(Form $form): Form
     {

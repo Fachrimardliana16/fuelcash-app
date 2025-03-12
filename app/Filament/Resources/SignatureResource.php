@@ -14,7 +14,9 @@ class SignatureResource extends Resource
 {
     protected static ?string $model = Signature::class;
     protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
-    protected static ?string $navigationGroup = 'Settings';
+    protected static ?string $navigationGroup = 'Configuration App';
+    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationGroupSort = 4;
 
     public static function form(Form $form): Form
     {

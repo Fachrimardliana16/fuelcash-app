@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -14,15 +14,59 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Mega Tyas',
                 'email' => 'tyas@pdampurbalingga.co.id',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('pdam891706'),
                 'email_verified_at' => now(),
             ],
             [
                 'name' => 'Sugi Astuti',
                 'email' => 'tuti@pdampurbalingga.co.id',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('pdam891706'),
                 'email_verified_at' => now(),
             ],
+            [
+                'name' => 'Irawan Tri Desi',
+                'email' => 'irawan@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Anjar Iswanto',
+                'email' => 'andjar@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Muh Manshur Kholiq',
+                'email' => 'kholiq@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Andika Anjas',
+                'email' => 'andika@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Anggoro Bayu',
+                'email' => 'Anggoro@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Aulia Alfi Maruf',
+                'email' => 'aulia@pdampurbalingga.co.id',
+                'password' => Hash::make('pdam891706'),
+                'email_verified_at' => now(),
+            ],
+            [
+                'name' => 'Fachri Mardliana',
+                'email' => 'fachri@pdampurbalingga.co.id',
+                'password' => Hash::make('Fachri161096'),
+                'email_verified_at' => now(),
+            ],
+
+
         ];
 
         foreach ($users as $user) {

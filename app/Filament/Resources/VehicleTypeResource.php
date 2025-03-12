@@ -19,8 +19,9 @@ class VehicleTypeResource extends Resource
     protected static ?string $model = VehicleType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationGroup = 'Manajemen Kendaraan';
+    protected static ?string $navigationGroup = 'Data Master Kendaraan';
     protected static ?int $navigationSort = 1;
+    protected static ?int $navigationGroupSort = 2;
     protected static ?string $navigationLabel = 'Jenis Kendaraan';
 
     public static function form(Form $form): Form
@@ -71,10 +72,10 @@ class VehicleTypeResource extends Resource
                     ->wrap()
                     ->searchable()
                     ->toggleable(),
-                Tables\Columns\IconColumn::make('isactive')
-                    ->label('Status Aktif')
-                    ->boolean()
-                    ->sortable(),
+                Tables\Columns\ToggleColumn::make('isactive')
+                    ->label('Status')
+                    ->onColor('success')
+                    ->offColor('danger'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal Dibuat')
                     ->dateTime('d F Y H:i')
@@ -113,10 +114,31 @@ class VehicleTypeResource extends Resource
                     })
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
-                    ->requiresConfirmation(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Kendaraan')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data kendaraan ini?')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal'),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

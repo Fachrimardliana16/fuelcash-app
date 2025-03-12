@@ -2,24 +2,30 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 
 class Vehicle extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'vehicle_type_id',
+        'name',
         'license_plate',
         'owner',
-        'isactive'
+        'vehicle_type_id',
+        'isactive',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
         'isactive' => 'boolean',
+        'deleted_at' => 'datetime'
     ];
 
     // Custom attribute mutator
@@ -28,19 +34,45 @@ class Vehicle extends Model
         $this->attributes['license_plate'] = strtoupper($value);
     }
 
-    // Scope for active records
-    public function scopeActive($query)
+    // Scope untuk data aktif
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('isactive', true);
     }
 
+    // Relationship dengan eager loading
     public function vehicleType(): BelongsTo
     {
-        return $this->belongsTo(VehicleType::class);
+        return $this->belongsTo(VehicleType::class)->withTrashed();
     }
 
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'vehicles_id');
+    }
+
+    // Validasi data
+    public static function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'license_plate' => 'required|string|max:20|unique:vehicles,license_plate',
+            'owner' => 'required|string|max:255',
+            'vehicle_type_id' => 'required|exists:vehicle_types,id',
+            'isactive' => 'boolean'
+        ];
+    }
+
+    // Boot method untuk setup model events
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Sanitasi input
+            $model->name = strip_tags($model->name);
+            $model->owner = strip_tags($model->owner);
+            $model->license_plate = strtoupper(strip_tags($model->license_plate));
+        });
     }
 }

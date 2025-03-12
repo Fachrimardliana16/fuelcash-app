@@ -21,13 +21,15 @@ use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use ImageOptimizer;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-    protected static ?string $navigationGroup = 'Manajemen BBM';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Manajemen Kas BBM';
+    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationGroupSort = 3; // Changed from ?string to ?int
     protected static ?string $navigationLabel = 'Transaksi BBM';
 
     public static function form(Form $form): Form
@@ -37,6 +39,9 @@ class TransactionResource extends Resource
 
         return $form
             ->schema([
+                Forms\Components\Hidden::make('user_id')
+                    ->default(fn() => Auth::id()),
+
                 Forms\Components\Section::make('Data Kendaraan')
                     ->description('Informasi kendaraan yang digunakan')
                     ->schema([
@@ -47,8 +52,8 @@ class TransactionResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->label('Plat Nomor')
-                            ->placeholder('Pilih plat nomor kendaraan')
+                            ->label('Nomor Kendaraan')
+                            ->placeholder('Pilih Nomor Kendaraan kendaraan')
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state) {
                                     $vehicle = \App\Models\Vehicle::with('vehicleType')->find($state);
@@ -95,7 +100,7 @@ class TransactionResource extends Resource
                             ]),
 
                         Forms\Components\Select::make('fuel_type_id')
-                            ->relationship('fuelType', 'name')
+                            ->relationship('fuelType', 'name', fn($query) => $query->where('isactive', true))
                             ->required()
                             ->searchable()
                             ->preload()
@@ -112,6 +117,7 @@ class TransactionResource extends Resource
                                 $fuelTypeId = $get('fuel_type_id');
                                 if (!$fuelTypeId) return [];
                                 return \App\Models\Fuel::where('fuel_type_id', $fuelTypeId)
+                                    ->where('isactive', true)
                                     ->pluck('name', 'id');
                             })
                             ->required()
@@ -135,7 +141,7 @@ class TransactionResource extends Resource
                             ->label('Jumlah')
                             ->placeholder('Masukkan jumlah')
                             ->mask('999999999')
-                            ->live(debounce: 500)
+                            ->live(onBlur: true, debounce: 500) // Corrected live implementation with both onBlur and debounce
                             ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                 $fuelId = $get('fuel_id');
                                 if ($fuelId && $state) {
@@ -196,8 +202,8 @@ class TransactionResource extends Resource
                                 'image/jpeg',
                                 'image/png',
                                 'image/jpg',
-                                'image/heic',
-                                'image/heif'
+                                'image.heic',
+                                'image.heif'
                             ])
                             ->maxSize(10240)
                             ->directory('fuel-receipts')
@@ -224,13 +230,13 @@ class TransactionResource extends Resource
                                 'image/jpeg',
                                 'image/png',
                                 'image/jpg',
-                                'image/heic',
-                                'image/heif'
+                                'image.heic',
+                                'image.heif'
                             ])
                             ->maxSize(10240)
                             ->directory('invoices')
                             ->optimize('jpg')
-                            ->label('Nota/Kwitansi')
+                            ->label('Form Permintaan BBM')
                             ->columnSpanFull()
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
@@ -258,90 +264,74 @@ class TransactionResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable()
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('usage_date')
                     ->label('Tanggal')
                     ->date('d M Y')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('vehicle.license_plate')
-                    ->label('Plat Nomor')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(),
+                Tables\Columns\TextColumn::make('license_plate')
+                    ->label('Detail Kendaraan')
+                    ->formatStateUsing(function ($record) {
+                        $owner = $record->owner ?? '-';
+                        $plate = $record->license_plate ?? '-';
 
-                Tables\Columns\TextColumn::make('vehicle.vehicleType.name')
-                    ->label('Jenis Kendaraan')
-                    ->searchable()
+                        return "{$owner}<br>
+                                {$plate}";
+                    })
+                    ->html()
+                    ->searchable(['owner', 'license_plate'])
                     ->sortable()
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('owner')
-                    ->label('Pemilik')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(),
+                    ->wrap()
+                    ->color('primary'),
 
                 Tables\Columns\TextColumn::make('fuelType.name')
-                    ->label('Jenis BBM')
+                    ->label('Jenis BBM & BBM')
+                    ->formatStateUsing(function ($record) {
+                        $fuelType = $record->fuelType->name ?? '-';
+                        $fuelName = $record->fuel->name ?? '-';
+
+                        return "{$fuelType}<br>
+                                {$fuelName}";
+                    })
+                    ->html()
                     ->searchable()
                     ->sortable()
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('fuel.name')
-                    ->label('BBM')
-                    ->searchable()
-                    ->sortable(),
+                    ->wrap()
+                    ->color('secondary'),
 
                 Tables\Columns\TextColumn::make('amount')
-                    ->label('Jumlah')
-                    ->money('idr')
-                    ->sortable()
-                    ->searchable(),
+                    ->label('Jumlah & Volume')
+                    ->formatStateUsing(function ($record) {
+                        $amount = "Rp " . number_format($record->amount, 0, ',', '.');
+                        $volume = number_format($record->volume, 2, ',', '.') . " Liter";
 
-                Tables\Columns\TextColumn::make('volume')
-                    ->label('Volume')
-                    ->suffix(' Liter')
-                    ->numeric(
-                        decimalPlaces: 2,
-                        decimalSeparator: ',',
-                        thousandsSeparator: '.'
-                    )
-                    ->sortable(),
+                        return "{$amount}<br>
+                                {$volume}";
+                    })
+                    ->html()
+                    ->sortable()
+                    ->wrap()
+                    ->color('success'),
 
                 Tables\Columns\TextColumn::make('usage_description')
                     ->label('Keterangan')
                     ->limit(30)
-                    ->searchable()
                     ->toggleable(),
 
                 Tables\Columns\ImageColumn::make('fuel_receipt')
                     ->label('Struk BBM')
-                    ->toggleable()
-                    ->circular(),
+                    ->circular()
+                    ->size(40),
 
                 Tables\Columns\ImageColumn::make('invoice')
-                    ->label('Nota/Kwitansi')
-                    ->toggleable()
-                    ->circular(),
+                    ->label('Form Permintaan')
+                    ->circular()
+                    ->size(40),
 
-                Tables\Columns\TextColumn::make('balance.remaining_balance')
-                    ->label('Sisa Saldo')
-                    ->money('idr')
-                    ->sortable()
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d M Y H:i')
-                    ->sortable()
-                    ->toggleable()
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Dibuat Oleh')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('usage_date', 'desc')
@@ -378,6 +368,7 @@ class TransactionResource extends Resource
             ->headerActions([
                 Tables\Actions\Action::make('generateTransactionReport')
                     ->label('Buat Laporan')
+                    ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
                     ->form([
                         Forms\Components\DatePicker::make('start_date')
@@ -397,7 +388,7 @@ class TransactionResource extends Resource
                         $startDate = \Carbon\Carbon::parse($data['start_date']);
                         $endDate = \Carbon\Carbon::parse($data['end_date']);
 
-                        $transactions = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance'])
+                        $transactions = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance', 'user'])
                             ->whereBetween('usage_date', [
                                 $startDate->startOfDay(),
                                 $endDate->endOfDay()
@@ -440,20 +431,42 @@ class TransactionResource extends Resource
                 ])->label('Aksi Grup'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make()
-                    ->before(function (Tables\Actions\DeleteAction $action) {
-                        if ($action->getRecord()->balance_id) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Transaksi tidak dapat dihapus')
-                                ->body('Transaksi ini terkait dengan saldo')
-                                ->send();
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat')
+                    ->button()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->color('warning')
+                        ->icon('heroicon-m-pencil-square'),
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->color('danger')
+                        ->icon('heroicon-m-trash')
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Transaksi')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus data transaksi ini?')
+                        ->modalSubmitActionLabel('Ya, Hapus')
+                        ->modalCancelActionLabel('Batal')
+                        ->before(function (Tables\Actions\DeleteAction $action) {
+                            if ($action->getRecord()->balance_id) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Transaksi tidak dapat dihapus')
+                                    ->body('Transaksi ini terkait dengan saldo')
+                                    ->send();
 
-                            $action->cancel();
-                        }
-                    }),
+                                $action->cancel();
+                            }
+                        }),
+                ])
+                    ->dropdown()
+                    ->button()
+                    ->color('primary')
+                    ->label('Aksi')
+                    ->icon('heroicon-m-ellipsis-vertical')
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
