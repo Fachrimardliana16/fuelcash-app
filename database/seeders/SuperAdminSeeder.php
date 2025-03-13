@@ -19,19 +19,13 @@ class SuperAdminSeeder extends Seeder
             [
                 'name' => 'Aulia Alfi Maruf',
                 'email' => 'aulia@pdampurbalingga.co.id',
-                'password' => Hash::make('pdam891706'),
+                'password' => Hash::make('pdamadmin891706'),
                 'email_verified_at' => now(),
             ],
             [
                 'name' => 'Fachri Mardliana',
                 'email' => 'fachri@pdampurbalingga.co.id',
                 'password' => Hash::make('Fachri161096'),
-                'email_verified_at' => now(),
-            ],
-            [
-                'name' => 'Admin PDAM',
-                'email' => 'admin@pdampurbalingga.co.id',
-                'password' => Hash::make('pdamadmin123'),
                 'email_verified_at' => now(),
             ],
         ];

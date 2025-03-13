@@ -49,20 +49,8 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Anggoro Bayu',
-                'email' => 'Anggoro@pdampurbalingga.co.id',
+                'email' => 'anggoro@pdampurbalingga.co.id',
                 'password' => Hash::make('pdam891706'),
-                'email_verified_at' => now(),
-            ],
-            [
-                'name' => 'Aulia Alfi Maruf',
-                'email' => 'aulia@pdampurbalingga.co.id',
-                'password' => Hash::make('pdam891706'),
-                'email_verified_at' => now(),
-            ],
-            [
-                'name' => 'Fachri Mardliana',
-                'email' => 'fachri@pdampurbalingga.co.id',
-                'password' => Hash::make('Fachri161096'),
                 'email_verified_at' => now(),
             ],
 

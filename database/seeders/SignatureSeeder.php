@@ -32,7 +32,7 @@ class SignatureSeeder extends Seeder
                 'name' => 'Endah Susilowati, S.H.',
                 'nip' => '197209151998032003',
                 'order' => 3,
-                'show_stamp' => true,
+                'show_stamp' => false,
             ],
         ];
 
