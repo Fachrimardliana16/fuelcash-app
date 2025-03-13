@@ -61,7 +61,7 @@ class CompanySettingResource extends Resource
                                 'image/jpg'
                             ])
                             ->maxSize(10240)
-                            ->optimize('jpg'),
+                            ->optimize('png'),
                         Forms\Components\Textarea::make('description')
                             ->maxLength(65535)
                             ->columnSpanFull(),
