@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 class FuelTypeResource extends Resource
 {
@@ -42,6 +43,34 @@ class FuelTypeResource extends Resource
                                 'max' => 'Nama jenis BBM maksimal 255 karakter',
                                 'unique' => 'Nama jenis BBM sudah ada',
                             ]),
+
+                        Forms\Components\TextInput::make('max_deposit')
+                            ->label('Maksimal Deposit')
+                            ->required()
+                            ->numeric()
+                            ->minValue(0)
+                            ->prefix('Rp')
+                            ->placeholder('0.00')
+                            ->helperText('Masukkan jumlah maksimal saldo yang dapat di depositkan')
+                            ->live(onBlur: true)
+                            ->debounce(500)
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state) {
+                                    $terbilang = ucwords(self::terbilang((int)$state) . ' rupiah');
+                                    $set('max_deposit_terbilang', $terbilang);
+                                }
+                            })
+                            ->validationMessages([
+                                'required' => 'Maksimal deposit wajib diisi',
+                                'numeric' => 'Maksimal deposit harus berupa angka',
+                                'min' => 'Maksimal deposit tidak boleh negatif',
+                            ]),
+
+                        Forms\Components\TextInput::make('max_deposit_terbilang')
+                            ->label('Terbilang')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('Hasil terbilang akan muncul otomatis'),
 
                         Forms\Components\Textarea::make('desc')
                             ->label('Deskripsi')
@@ -76,6 +105,24 @@ class FuelTypeResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->tooltip('Nama Jenis BBM'),
+
+                Tables\Columns\TextColumn::make('max_deposit')
+                    ->label('Maksimal Deposit')
+                    ->money('IDR')
+                    ->sortable()
+                    ->tooltip('Jumlah maksimal saldo yang dapat di depositkan'),
+
+                Tables\Columns\TextColumn::make('max_deposit_terbilang')
+                    ->label('Terbilang')
+                    ->state(function (FuelType $record): string {
+                        // Capitalize each word in the result
+                        return ucwords(self::terbilang((int)$record->max_deposit) . ' rupiah');
+                    })
+                    ->searchable(false)
+                    ->sortable(false)
+                    ->wrap()
+                    ->tooltip('Jumlah maksimal saldo dalam kata-kata')
+                    ->color('success'),
 
                 Tables\Columns\ToggleColumn::make('isactive')
                     ->label('Status Aktif')
@@ -143,6 +190,47 @@ class FuelTypeResource extends Resource
                         ->modalCancelActionLabel('Batal'),
                 ]),
             ]);
+    }
+
+    // Fungsi helper untuk mengubah angka menjadi kata-kata (terbilang)
+    protected static function terbilang(int $number): string
+    {
+        $words = [
+            '',
+            'satu',
+            'dua',
+            'tiga',
+            'empat',
+            'lima',
+            'enam',
+            'tujuh',
+            'delapan',
+            'sembilan',
+            'sepuluh',
+            'sebelas'
+        ];
+
+        if ($number < 12) {
+            return $words[$number];
+        } elseif ($number < 20) {
+            return self::terbilang($number - 10) . ' belas';
+        } elseif ($number < 100) {
+            return self::terbilang((int)($number / 10)) . ' puluh ' . self::terbilang($number % 10);
+        } elseif ($number < 200) {
+            return 'seratus ' . self::terbilang($number - 100);
+        } elseif ($number < 1000) {
+            return self::terbilang((int)($number / 100)) . ' ratus ' . self::terbilang($number % 100);
+        } elseif ($number < 2000) {
+            return 'seribu ' . self::terbilang($number - 1000);
+        } elseif ($number < 1000000) {
+            return self::terbilang((int)($number / 1000)) . ' ribu ' . self::terbilang($number % 1000);
+        } elseif ($number < 1000000000) {
+            return self::terbilang((int)($number / 1000000)) . ' juta ' . self::terbilang($number % 1000000);
+        } elseif ($number < 1000000000000) {
+            return self::terbilang((int)($number / 1000000000)) . ' milyar ' . self::terbilang($number % 1000000000);
+        } else {
+            return self::terbilang((int)($number / 1000000000000)) . ' trilyun ' . self::terbilang($number % 1000000000000);
+        }
     }
 
     public static function getRelations(): array

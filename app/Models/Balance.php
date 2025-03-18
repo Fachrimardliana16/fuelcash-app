@@ -13,6 +13,7 @@ class Balance extends Model
 
     protected $fillable = [
         'user_id',
+        'fuel_type_id',
         'date',
         'deposit_amount',
         'remaining_balance'
@@ -28,12 +29,21 @@ class Balance extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function fuelType(): BelongsTo
+    {
+        return $this->belongsTo(FuelType::class);
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($balance) {
-            $lastBalance = static::latest()->first()?->remaining_balance ?? 0;
+            // Get the last balance for the specific fuel type
+            $lastBalance = static::where('fuel_type_id', $balance->fuel_type_id)
+                ->latest()
+                ->first()?->remaining_balance ?? 0;
+
             $balance->remaining_balance = $lastBalance + $balance->deposit_amount;
         });
     }

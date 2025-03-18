@@ -14,12 +14,14 @@ class FuelType extends Model
     protected $fillable = [
         'name',
         'desc',
+        'max_deposit',
         'isactive'
     ];
 
     protected $casts = [
         'isactive' => 'boolean',
-        'deleted_at' => 'datetime'
+        'deleted_at' => 'datetime',
+        'max_deposit' => 'decimal:2'
     ];
 
     // Scope untuk data aktif
@@ -40,6 +42,7 @@ class FuelType extends Model
         return [
             'name' => 'required|string|max:255|unique:fuel_types,name',
             'desc' => 'nullable|string',
+            'max_deposit' => 'required|numeric|min:0',
             'isactive' => 'boolean'
         ];
     }

@@ -11,13 +11,16 @@ class TransactionObserver
 {
     public function creating(Transaction $transaction)
     {
-        $latestBalance = Balance::latest()->first();
+        // Find the latest balance for the specific fuel type
+        $latestBalance = Balance::where('fuel_type_id', $transaction->fuel_type_id)
+            ->latest()
+            ->first();
 
         if (!$latestBalance) {
             Notification::make()
                 ->danger()
                 ->title('Saldo Tidak Tersedia')
-                ->body('Tidak ada saldo tersedia untuk transaksi')
+                ->body('Tidak ada saldo tersedia untuk jenis BBM yang dipilih')
                 ->send();
             return false;
         }
@@ -26,7 +29,7 @@ class TransactionObserver
             Notification::make()
                 ->danger()
                 ->title('Saldo Tidak Mencukupi')
-                ->body("Saldo tersedia: Rp " . number_format($latestBalance->remaining_balance, 0, ',', '.'))
+                ->body("Saldo tersedia untuk " . $latestBalance->fuelType->name . ": Rp " . number_format($latestBalance->remaining_balance, 0, ',', '.'))
                 ->send();
             return false;
         }
