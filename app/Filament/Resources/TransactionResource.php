@@ -34,9 +34,6 @@ class TransactionResource extends Resource
 
     public static function form(Form $form): Form
     {
-        $latestBalance = Balance::latest()->first();
-        $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-
         return $form
             ->schema([
                 Forms\Components\Hidden::make('user_id')
@@ -132,7 +129,19 @@ class TransactionResource extends Resource
 
                         Forms\Components\Placeholder::make('available_balance')
                             ->label('Saldo Tersedia')
-                            ->content("Rp " . number_format($availableBalance, 0, ',', '.')),
+                            ->content(function (Forms\Get $get) {
+                                $fuelTypeId = $get('fuel_type_id');
+                                if (!$fuelTypeId) {
+                                    return "Pilih jenis BBM terlebih dahulu";
+                                }
+
+                                $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                    ->latest()
+                                    ->first();
+
+                                $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+                                return "Rp " . number_format($availableBalance, 0, ',', '.');
+                            }),
 
                         Forms\Components\TextInput::make('amount')
                             ->required()
@@ -151,19 +160,57 @@ class TransactionResource extends Resource
                                         $set('volume', number_format($volume, 2));
                                     }
                                 }
+
+                                // Add validation for balance
+                                $fuelTypeId = $get('fuel_type_id');
+                                if ($fuelTypeId && $state) {
+                                    $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                        ->latest()
+                                        ->first();
+
+                                    $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+
+                                    if ($state > $availableBalance) {
+                                        $set('balance_warning', "Jumlah melebihi saldo tersedia (Rp " . number_format($availableBalance, 0, ',', '.') . ")");
+                                    } else {
+                                        $set('balance_warning', null);
+                                    }
+                                }
                             })
                             ->rules([
                                 'required',
                                 'numeric',
                                 'min:1',
-                                'max:' . $availableBalance
+                                function (Forms\Get $get) {
+                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) return;
+
+                                        $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                            ->latest()
+                                            ->first();
+
+                                        $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+
+                                        if ($value > $availableBalance) {
+                                            $fail("Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($availableBalance, 0, ',', '.'));
+                                        }
+                                    };
+                                }
                             ])
                             ->validationMessages([
                                 'required' => 'Jumlah wajib diisi',
                                 'numeric' => 'Jumlah harus berupa angka',
                                 'min' => 'Jumlah minimal 1',
-                                'max' => "Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($availableBalance, 0, ',', '.')
                             ]),
+
+                        Forms\Components\Placeholder::make('balance_warning')
+                            ->label('')
+                            ->content(fn(Forms\Get $get) => $get('balance_warning'))
+                            ->extraAttributes([
+                                'class' => 'text-danger-500 font-medium',
+                            ])
+                            ->visible(fn(Forms\Get $get) => $get('balance_warning')),
 
                         Forms\Components\TextInput::make('volume')
                             ->label('Volume BBM')
@@ -228,7 +275,7 @@ class TransactionResource extends Resource
                             ->imageEditorViewportHeight('1080')
                             ->acceptedFileTypes([
                                 'image/jpeg',
-                                'image/png',
+                                'image.png',
                                 'image/jpg',
                                 'image.heic',
                                 'image.heif'
@@ -312,6 +359,7 @@ class TransactionResource extends Resource
                     ->html()
                     ->sortable()
                     ->wrap()
+
                     ->color('success'),
 
                 Tables\Columns\TextColumn::make('usage_description')

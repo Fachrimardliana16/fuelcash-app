@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->text('desc')->nullable();
+            $table->decimal('max_deposit', 15, 2)->default(0)->comment('Maksimal saldo yang dapat di depositkan');
             $table->boolean('isactive')->default(true)->index();
             $table->softDeletes();
             $table->timestamps();

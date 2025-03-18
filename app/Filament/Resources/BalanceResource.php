@@ -6,6 +6,7 @@ use App\Filament\Resources\BalanceResource\Pages;
 use App\Filament\Resources\BalanceResource\RelationManagers;
 use App\Models\Balance;
 use App\Models\CompanySetting;
+use App\Models\FuelType;
 use App\Models\Signature;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
@@ -29,8 +30,6 @@ class BalanceResource extends Resource
 
     public static function form(Form $form): Form
     {
-        $lastBalance = Balance::latest()->first()?->remaining_balance ?? 0;
-
         return $form
             ->schema([
                 Forms\Components\Hidden::make('user_id')
@@ -39,6 +38,16 @@ class BalanceResource extends Resource
                 Forms\Components\Section::make('Informasi Deposit')
                     ->description('Masukkan detail deposit')
                     ->schema([
+                        Forms\Components\Select::make('fuel_type_id')
+                            ->label('Jenis BBM')
+                            ->options(FuelType::pluck('name', 'id'))
+                            ->required()
+                            ->placeholder('Pilih jenis BBM')
+                            ->live()
+                            ->validationMessages([
+                                'required' => 'Silakan pilih jenis BBM',
+                            ]),
+
                         Forms\Components\DatePicker::make('date')
                             ->label('Tanggal Input')
                             ->required()
@@ -55,17 +64,99 @@ class BalanceResource extends Resource
                             ->prefix('Rp')
                             ->inputMode('numeric')
                             ->placeholder('Masukkan jumlah deposit')
-                            ->live(onBlur: true, debounce: 500) // Updated to use onBlur and debounce
+                            ->live(onBlur: true, debounce: 500)
                             ->minValue(1)
                             ->validationMessages([
                                 'required' => 'Silakan masukkan jumlah deposit',
                                 'numeric' => 'Jumlah harus berupa angka',
                                 'min' => 'Jumlah harus lebih besar dari 0',
                             ])
-                            ->afterStateUpdated(function ($state, Forms\Set $set) use ($lastBalance) {
+                            ->afterStateUpdated(function ($state, $get, Forms\Set $set) {
+                                $fuelTypeId = $get('fuel_type_id');
+                                if (!$fuelTypeId) return;
+
+                                $lastBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                    ->latest()
+                                    ->first()?->remaining_balance ?? 0;
+
                                 $newBalance = $lastBalance + (float)($state ?? 0);
                                 $set('remaining_balance', $newBalance);
+
+                                // Validasi jumlah deposit terhadap maksimal yang bisa ditambahkan
+                                $fuelType = FuelType::find($fuelTypeId);
+                                if ($fuelType) {
+                                    $maxDeposit = $fuelType->max_deposit;
+                                    $remainingCapacity = max(0, $maxDeposit - $lastBalance);
+
+                                    if ((float)$state > $remainingCapacity) {
+                                        Notification::make()
+                                            ->warning()
+                                            ->title('Peringatan Deposit')
+                                            ->body('Jumlah deposit melebihi batas maksimal yang diizinkan!')
+                                            ->persistent()
+                                            ->send();
+                                    }
+                                }
                             }),
+
+                        Forms\Components\Section::make('Informasi Batas Deposit')
+                            ->columns(1)
+                            ->schema([
+                                Forms\Components\Placeholder::make('max_deposit_info')
+                                    ->label('1. Maksimal Deposit')
+                                    ->content(function ($get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) return 'Pilih jenis BBM terlebih dahulu';
+
+                                        $fuelType = FuelType::find($fuelTypeId);
+                                        return 'Rp ' . number_format($fuelType?->max_deposit ?? 0, 0, ',', '.');
+                                    }),
+
+                                Forms\Components\Placeholder::make('remaining_deposit_capacity')
+                                    ->label('2. Sisa Deposit')
+                                    ->content(function ($get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) return 'Pilih jenis BBM terlebih dahulu';
+
+                                        $fuelType = FuelType::find($fuelTypeId);
+                                        $maxDeposit = $fuelType?->max_deposit ?? 0;
+
+                                        $lastBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                            ->latest()
+                                            ->first()?->remaining_balance ?? 0;
+
+                                        $remainingCapacity = max(0, $maxDeposit - $lastBalance);
+                                        return 'Rp ' . number_format($remainingCapacity, 0, ',', '.');
+                                    }),
+
+                                Forms\Components\Placeholder::make('addable_balance_status')
+                                    ->label('3. Saldo yang Bisa Ditambahkan')
+                                    ->content(function ($get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) return 'Pilih jenis BBM terlebih dahulu';
+
+                                        $depositAmount = (float)($get('deposit_amount') ?? 0);
+                                        if ($depositAmount <= 0) return 'Masukkan jumlah deposit';
+
+                                        $fuelType = FuelType::find($fuelTypeId);
+                                        $maxDeposit = $fuelType?->max_deposit ?? 0;
+
+                                        $lastBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                            ->latest()
+                                            ->first()?->remaining_balance ?? 0;
+
+                                        // Hitung saldo yang bisa ditambahkan (maksimal deposit - sisa deposit saat ini)
+                                        $addableBalance = max(0, $maxDeposit - $lastBalance);
+                                        $result = 'Rp ' . number_format($addableBalance, 0, ',', '.');
+
+                                        // Cek apakah jumlah deposit melebihi yang diizinkan
+                                        if ($depositAmount > $addableBalance) {
+                                            return '❌ ' . $result . ' (Deposit melebihi batas maksimal!)';
+                                        }
+
+                                        return '✅ ' . $result;
+                                    }),
+                            ]),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Informasi Saldo')
@@ -80,7 +171,16 @@ class BalanceResource extends Resource
 
                         Forms\Components\Placeholder::make('last_balance')
                             ->label('Saldo Terakhir')
-                            ->content('Rp ' . number_format($lastBalance, 0, ',', '.'))
+                            ->content(function ($get) {
+                                $fuelTypeId = $get('fuel_type_id');
+                                if (!$fuelTypeId) return 'Pilih jenis BBM terlebih dahulu';
+
+                                $lastBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                    ->latest()
+                                    ->first()?->remaining_balance ?? 0;
+
+                                return 'Rp ' . number_format($lastBalance, 0, ',', '.');
+                            })
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -90,6 +190,11 @@ class BalanceResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('fuelType.name')
+                    ->label('Jenis BBM')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('date')
                     ->label('Tanggal')
                     ->date()
@@ -124,16 +229,28 @@ class BalanceResource extends Resource
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function () {
-                        $balances = Balance::with(['transactions', 'user'])
+                        $balances = Balance::with(['transactions', 'user', 'fuelType'])
                             ->orderBy('date', 'desc')
                             ->get();
 
                         $company = CompanySetting::first();
 
+                        // Group balances by fuel type
+                        $balancesByFuelType = $balances->groupBy('fuel_type_id');
+                        $totals = [];
+
+                        foreach ($balancesByFuelType as $fuelTypeId => $fuelBalances) {
+                            $fuelType = FuelType::find($fuelTypeId);
+                            $totals[$fuelTypeId] = [
+                                'name' => $fuelType->name,
+                                'total_deposit' => $fuelBalances->sum('deposit_amount'),
+                                'current_balance' => $fuelBalances->sortByDesc('created_at')->first()->remaining_balance
+                            ];
+                        }
+
                         $pdf = Pdf::loadView('pdf.balance-report', [
                             'balances' => $balances,
-                            'total_deposit' => $balances->sum('deposit_amount'),
-                            'current_balance' => $balances->last()->remaining_balance,
+                            'totals' => $totals,
                             'company' => $company
                         ]);
 
