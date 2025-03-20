@@ -212,7 +212,7 @@ class BalanceResource extends Resource
                     ->color(fn(Balance $record): string => $record->remaining_balance > 1000000 ? 'success' : 'danger'),
 
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Dibuat Oleh')
+                    ->label('Diinput Oleh')
                     ->searchable()
                     ->sortable(),
 
@@ -220,7 +220,8 @@ class BalanceResource extends Resource
                     ->label('Dibuat Pada')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([
