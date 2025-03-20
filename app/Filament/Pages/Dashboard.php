@@ -26,7 +26,7 @@ class Dashboard extends BasePage
     {
         return [
             // 1. Current balance and last deposit cards
-            CurrentBalanceWidget::class,
+            // CurrentBalanceWidget::class,
 
             // 2-3. Balance Stats and Latest Balances side by side
             BalanceStatsWidget::class,
