@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Balance;
+use App\Models\FuelType;
 use App\Models\Transaction;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -12,48 +13,52 @@ class CurrentBalanceWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
     protected int | string | array $columnSpan = 'full';
+    protected static ?string $pollingInterval = '30s';
 
     protected function getStats(): array
     {
-        // Get current balance
-        $currentBalance = Balance::latest()->first()?->remaining_balance ?? 0;
+        // Get all active fuel types
+        $fuelTypes = FuelType::where('isactive', true)->get();
 
-        // Calculate balance trend percentage over the last 30 days
-        $lastMonthDeposit = Balance::where('date', '>=', Carbon::now()->subDays(30))
-            ->sum('deposit_amount');
+        $stats = [];
 
-        $lastMonthSpending = Transaction::where('usage_date', '>=', Carbon::now()->subDays(30))
-            ->sum('amount');
+        // Add overall balance stat
+        $totalBalance = 0;
+        foreach ($fuelTypes as $fuelType) {
+            $latestBalance = Balance::where('fuel_type_id', $fuelType->id)
+                ->latest()
+                ->first();
 
-        $balanceChange = $lastMonthDeposit - $lastMonthSpending;
-        $trend = $currentBalance > 0 ? ($balanceChange / $currentBalance * 100) : 0;
-        $trendIcon = $trend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down';
-        $trendColor = $trend >= 0 ? 'success' : 'danger';
-        $trendFormatted = number_format(abs($trend), 1) . '%';
-
-        // Get last deposit info
-        $lastDeposit = Balance::latest()->first();
-
-        // Fix the date handling - convert string date to Carbon instance first
-        $lastDepositDate = 'Never';
-        if ($lastDeposit && $lastDeposit->date) {
-            // Convert string date to Carbon instance
-            $lastDepositDate = Carbon::parse($lastDeposit->date)->diffForHumans();
+            $totalBalance += $latestBalance ? $latestBalance->remaining_balance : 0;
         }
 
-        $lastDepositAmount = $lastDeposit ? 'Rp ' . number_format($lastDeposit->deposit_amount, 0, ',', '.') : 'None';
+        $todayTransactions = Transaction::whereDate('usage_date', Carbon::today())->sum('amount');
+        $yesterdayTransactions = Transaction::whereDate('usage_date', Carbon::yesterday())->sum('amount');
 
-        return [
-            Stat::make('Current Balance', 'Rp ' . number_format($currentBalance, 0, ',', '.'))
-                ->description($trend >= 0 ? 'Increased by ' . $trendFormatted : 'Decreased by ' . $trendFormatted)
-                ->descriptionIcon($trendIcon)
-                ->color($trendColor)
-                ->chart([$currentBalance - $balanceChange, $currentBalance]),
+        $stats[] = Stat::make('Total Saldo Saat Ini', 'Rp ' . number_format($totalBalance, 0, ',', '.'))
+            ->description('Seluruh saldo BBM yang tersedia')
+            ->descriptionIcon('heroicon-m-banknotes')
+            ->color('success');
 
-            Stat::make('Last Deposit', $lastDepositAmount)
-                ->description($lastDepositDate)
-                ->descriptionIcon('heroicon-o-clock')
-                ->color('primary'),
-        ];
+        $stats[] = Stat::make('Transaksi Hari Ini', 'Rp ' . number_format($todayTransactions, 0, ',', '.'))
+            ->description('Total pengeluaran hari ini')
+            ->descriptionIcon('heroicon-m-arrow-trending-down')
+            ->color('danger');
+
+        $stats[] = Stat::make('Transaksi Kemarin', 'Rp ' . number_format($yesterdayTransactions, 0, ',', '.'))
+            ->description('Total pengeluaran kemarin')
+            ->descriptionIcon('heroicon-m-calendar')
+            ->color('warning');
+
+        $thisMonthSpending = Transaction::whereMonth('usage_date', Carbon::now()->month)
+            ->whereYear('usage_date', Carbon::now()->year)
+            ->sum('amount');
+
+        $stats[] = Stat::make('Pengeluaran Bulan Ini', 'Rp ' . number_format($thisMonthSpending, 0, ',', '.'))
+            ->description('Total bulan ' . Carbon::now()->format('F Y'))
+            ->descriptionIcon('heroicon-m-chart-bar')
+            ->color('info');
+
+        return $stats;
     }
 }

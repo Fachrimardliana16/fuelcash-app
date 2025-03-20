@@ -83,9 +83,9 @@ class TransactionStats extends BaseWidget
             value: 'Rp ' . number_format($remainingBalance, 0, ',', '.')
         )
             ->description(new HtmlString(
-                "Total Transaksi: {$totalTransactions}x" .
-                '<br>Pengeluaran: Rp ' . number_format($currentMonthExpense, 0, ',', '.') .
-                '<br>Volume: ' . number_format($totalVolume, 2, ',', '.') . ' Liter'
+                "Total Transaksi : {$totalTransactions} Transaksi" .
+                    '<br>Pengeluaran : Rp ' . number_format($currentMonthExpense, 0, ',', '.') .
+                    '<br>Volume : ' . number_format($totalVolume, 2, ',', '.') . ' Liter'
             ))
             ->color($this->getStatusColor($remainingBalance))
             ->chart($this->generateChartData($fuelType->id));

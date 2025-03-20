@@ -24,9 +24,9 @@ class TransactionStatsWidget extends ChartWidget
     protected function getFilters(): ?array
     {
         return [
+            'hourly' => 'Per Jam (24 jam terakhir)',
             'daily' => 'Harian (30 hari terakhir)',
-            'monthly' => 'Bulanan (Bulan ini)',
-            'yearly' => 'Tahunan (5 tahun terakhir)',
+            'monthly' => 'Bulanan (12 bulan terakhir)',
             'custom_range' => 'Rentang Khusus Tanggal',
         ];
     }
@@ -46,12 +46,12 @@ class TransactionStatsWidget extends ChartWidget
 
         // Otherwise, use the filter value to determine which data to show
         switch ($filter) {
+            case 'hourly':
+                return $this->getHourlyData();
             case 'daily':
                 return $this->getDailyData();
             case 'monthly':
                 return $this->getMonthlyData();
-            case 'yearly':
-                return $this->getYearlyData();
             default:
                 return $this->getDailyData();
         }
@@ -117,7 +117,7 @@ class TransactionStatsWidget extends ChartWidget
     protected function getMonthlyData(): array
     {
         $transactions = Transaction::selectRaw('YEAR(usage_date) as year, MONTH(usage_date) as month, SUM(amount) as total')
-            ->whereDate('usage_date', '>=', Carbon::now()->startOfYear())
+            ->whereDate('usage_date', '>=', Carbon::now()->subMonths(12)->startOfMonth())
             ->groupBy(['year', 'month'])
             ->orderBy('year')
             ->orderBy('month')
@@ -126,18 +126,19 @@ class TransactionStatsWidget extends ChartWidget
         $labels = [];
         $data = [];
 
-        // Create a range of months for the current year
-        $currentMonth = Carbon::now()->month;
+        // Create a range of the last 12 months
+        $period = Carbon::now()->subMonths(11)->startOfMonth()->monthsUntil(Carbon::now()->endOfMonth());
 
-        for ($i = 1; $i <= $currentMonth; $i++) {
-            $monthDate = Carbon::createFromDate(null, $i, 1);
-            $labels[] = $monthDate->format('M');
+        foreach ($period as $date) {
+            $year = $date->year;
+            $month = $date->month;
+            $labels[] = $date->format('M Y');
 
-            $yearMonth = $transactions->first(function ($item) use ($i) {
-                return $item->month == $i;
+            $monthData = $transactions->first(function ($item) use ($year, $month) {
+                return $item->year == $year && $item->month == $month;
             });
 
-            $data[] = $yearMonth?->total ?? 0;
+            $data[] = $monthData?->total ?? 0;
         }
 
         return [
@@ -255,6 +256,42 @@ class TransactionStatsWidget extends ChartWidget
                     'data' => $data,
                     'borderColor' => '#9966FF',
                     'backgroundColor' => 'rgba(153, 102, 255, 0.2)',
+                ]
+            ],
+        ];
+    }
+
+    protected function getHourlyData(): array
+    {
+        $transactions = Transaction::selectRaw('DATE_FORMAT(usage_date, "%Y-%m-%d %H:00:00") as hour, SUM(amount) as total')
+            ->where('usage_date', '>=', Carbon::now()->subHours(24))
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+
+        $labels = [];
+        $data = [];
+
+        // Create a range of hours for the past 24 hours
+        $period = Carbon::now()->subHours(24)->hoursUntil(Carbon::now());
+
+        foreach ($period as $hour) {
+            $formattedHour = $hour->format('Y-m-d H:00:00');
+            $labels[] = $hour->format('H:00');
+
+            $amount = $transactions->firstWhere('hour', $formattedHour)?->total ?? 0;
+            $data[] = $amount;
+        }
+
+        return [
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'label' => 'Transaksi Per Jam',
+                    'data' => $data,
+                    'borderColor' => '#FF9F40',
+                    'backgroundColor' => 'rgba(255, 159, 64, 0.2)',
+                    'fill' => false,
                 ]
             ],
         ];
