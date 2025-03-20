@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('fuel_type_id')->constrained('fuel_types');
             $table->string('name')->unique();
-            $table->decimal('price', 10, 2)->index();
-            $table->string('unit');
+            $table->decimal('price', 10, 2)->index()->nullable();
+            $table->string('unit')->nullable();
             $table->boolean('isactive')->default(true)->index();
             $table->softDeletes();
             $table->timestamps();

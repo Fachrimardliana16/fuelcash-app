@@ -12,6 +12,7 @@ class FuelSeeder extends Seeder
         // Get fuel type IDs
         $premiumTypeId = DB::table('fuel_types')->where('name', 'Premium')->value('id');
         $solarTypeId = DB::table('fuel_types')->where('name', 'Solar')->value('id');
+        $kekeringanTypeId = DB::table('fuel_types')->where('name', 'Kekeringan')->value('id');
 
         DB::table('fuels')->insert([
             [
@@ -46,6 +47,15 @@ class FuelSeeder extends Seeder
                 'name' => 'Dexlite',
                 'price' => 13000,
                 'unit' => 'liter',
+                'isactive' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'fuel_type_id' => $kekeringanTypeId,
+                'name' => 'BBM Kekeringan',
+                'price' => null,
+                'unit' => null,
                 'isactive' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

@@ -250,8 +250,8 @@ class TransactionResource extends Resource
                                 'image/jpeg',
                                 'image/png',
                                 'image/jpg',
-                                'image.heic',
-                                'image.heif'
+                                'image/heic',
+                                'image/heif'
                             ])
                             ->maxSize(10240)
                             ->directory('fuel-receipts')
@@ -276,10 +276,10 @@ class TransactionResource extends Resource
                             ->imageEditorViewportHeight('1080')
                             ->acceptedFileTypes([
                                 'image/jpeg',
-                                'image.png',
+                                'image/png',
                                 'image/jpg',
-                                'image.heic',
-                                'image.heif'
+                                'image/heic',
+                                'image/heif'
                             ])
                             ->maxSize(10240)
                             ->directory('invoices')
