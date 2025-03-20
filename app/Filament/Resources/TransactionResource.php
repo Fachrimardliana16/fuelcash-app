@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TransactionResource\Pages;
 use App\Models\Transaction;
 use App\Models\Balance;
-use App\Models\CompanySetting;  // Add this import
+use App\Models\CompanySetting;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -22,6 +22,7 @@ use Intervention\Image\Drivers\Gd\Driver;
 use ImageOptimizer;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;  // Add this import
 
 class TransactionResource extends Resource
 {
@@ -419,10 +420,37 @@ class TransactionResource extends Resource
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
                     ->form([
+                        Forms\Components\Select::make('vehicle_type_id')
+                            ->label('Jenis Kendaraan')
+                            ->relationship('vehicleType', 'name')
+                            ->placeholder('Semua Jenis Kendaraan')
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\Select::make('fuel_type_id')
+                            ->label('Jenis BBM')
+                            ->relationship('fuelType', 'name')
+                            ->placeholder('Semua Jenis BBM')
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\Select::make('vehicles_id')
+                            ->label('Nomor Kendaraan')
+                            ->relationship(
+                                'vehicle',
+                                'license_plate',
+                                fn ($query) => $query->select(['id', 'license_plate', 'owner'])
+                            )
+                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->license_plate} - {$record->owner}")
+                            ->placeholder('Semua Nomor Kendaraan')
+                            ->searchable()
+                            ->preload(),
+
                         Forms\Components\DatePicker::make('start_date')
                             ->label('Dari Tanggal')
                             ->required()
                             ->default(now()->startOfMonth()),
+
                         Forms\Components\DatePicker::make('end_date')
                             ->label('Sampai Tanggal')
                             ->required()
@@ -430,18 +458,26 @@ class TransactionResource extends Resource
                             ->afterOrEqual('start_date'),
                     ])
                     ->action(function (array $data) {
-                        $latestBalance = Balance::latest()->first();
-                        $initialBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-
-                        $startDate = \Carbon\Carbon::parse($data['start_date']);
-                        $endDate = \Carbon\Carbon::parse($data['end_date']);
-
-                        $transactions = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance', 'user'])
+                        $query = Transaction::with(['vehicle.vehicleType', 'fuelType', 'balance', 'user'])
                             ->whereBetween('usage_date', [
-                                $startDate->startOfDay(),
-                                $endDate->endOfDay()
-                            ])
-                            ->orderBy('usage_date', 'asc')
+                                $data['start_date'],
+                                $data['end_date']
+                            ]);
+
+                        // Apply filters if selected
+                        if (!empty($data['vehicle_type_id'])) {
+                            $query->where('vehicle_type_id', $data['vehicle_type_id']);
+                        }
+
+                        if (!empty($data['fuel_type_id'])) {
+                            $query->where('fuel_type_id', $data['fuel_type_id']);
+                        }
+
+                        if (!empty($data['vehicles_id'])) {
+                            $query->where('vehicles_id', $data['vehicles_id']);
+                        }
+
+                        $transactions = $query->orderBy('usage_date', 'asc')
                             ->orderBy('created_at', 'asc')
                             ->get();
 
@@ -451,25 +487,58 @@ class TransactionResource extends Resource
                                 ->title('Tidak ada transaksi')
                                 ->body('Tidak ada transaksi dalam rentang tanggal yang dipilih')
                                 ->send();
-
                             return;
                         }
 
-                        $dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
+                        $dateRange = Carbon::parse($data['start_date'])->format('d/m/Y') . ' - ' .
+                                   Carbon::parse($data['end_date'])->format('d/m/Y');
 
-                        // Get company data
                         $company = CompanySetting::first();
 
+                        $vehicleType = null;
+                        $fuelType = null;
+                        $vehiclePlate = null;
+
+                        if (!empty($data['vehicle_type_id'])) {
+                            $vehicleType = \App\Models\VehicleType::find($data['vehicle_type_id'])->name;
+                        }
+
+                        if (!empty($data['fuel_type_id'])) {
+                            $fuelType = \App\Models\FuelType::find($data['fuel_type_id'])->name;
+                        }
+
+                        if (!empty($data['vehicles_id'])) {
+                            $vehiclePlate = \App\Models\Vehicle::find($data['vehicles_id'])->license_plate;
+                        }
+
+                        // Group transactions by fuel type and calculate totals
+                        $transactionsByFuelType = $transactions->groupBy('fuelType.name');
+                        $totals = [];
+
+                        foreach ($transactionsByFuelType as $fuelTypeName => $fuelTypeTransactions) {
+                            $initialBalance = $fuelTypeTransactions->first()->balance->remaining_balance + $fuelTypeTransactions->sum('amount');
+                            $totals[$fuelTypeName] = [
+                                'initial_balance' => $initialBalance,
+                                'total_amount' => $fuelTypeTransactions->sum('amount'),
+                                'total_volume' => $fuelTypeTransactions->sum('volume'),
+                                'remaining_balance' => $initialBalance - $fuelTypeTransactions->sum('amount')
+                            ];
+                        }
+
                         $pdf = Pdf::loadView('reports.transactions', [
-                            'transactions' => $transactions,
+                            'transactionsByFuelType' => $transactionsByFuelType,
+                            'totals' => $totals,
                             'dateRange' => $dateRange,
-                            'initialBalance' => $initialBalance,
                             'company' => $company,
+                            'vehicleType' => $vehicleType,
+                            'fuelType' => $fuelType,
+                            'vehiclePlate' => $vehiclePlate,
                         ]);
 
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->output();
-                        }, 'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf');
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf'
+                        );
                     }),
             ])
             ->bulkActions([

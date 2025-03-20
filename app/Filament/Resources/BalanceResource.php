@@ -228,11 +228,29 @@ class BalanceResource extends Resource
                     ->label('Buat Laporan')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function () {
-                        $balances = Balance::with(['transactions', 'user', 'fuelType'])
-                            ->orderBy('date', 'desc')
-                            ->get();
+                    ->form([
+                        Forms\Components\Select::make('fuel_type_id')
+                            ->label('Jenis BBM')
+                            ->options(FuelType::pluck('name', 'id'))
+                            ->placeholder('Semua Jenis BBM'),
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Tanggal Mulai')
+                            ->default(now()->startOfMonth())
+                            ->required(),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Tanggal Akhir')
+                            ->default(now())
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $query = Balance::with(['user', 'fuelType'])
+                            ->whereBetween('date', [$data['start_date'], $data['end_date']]);
 
+                        if (!empty($data['fuel_type_id'])) {
+                            $query->where('fuel_type_id', $data['fuel_type_id']);
+                        }
+
+                        $balances = $query->orderBy('date', 'desc')->get();
                         $company = CompanySetting::first();
 
                         // Group balances by fuel type
@@ -249,14 +267,17 @@ class BalanceResource extends Resource
                         }
 
                         $pdf = Pdf::loadView('pdf.balance-report', [
-                            'balances' => $balances,
+                            'balancesByFuelType' => $balancesByFuelType,
                             'totals' => $totals,
-                            'company' => $company
+                            'company' => $company,
+                            'start_date' => $data['start_date'],
+                            'end_date' => $data['end_date']
                         ]);
 
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->output();
-                        }, 'laporan-saldo-' . now()->format('Y-m-d') . '.pdf');
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'laporan-saldo-' . now()->format('Y-m-d') . '.pdf'
+                        );
                     }),
             ])
             ->filters([
