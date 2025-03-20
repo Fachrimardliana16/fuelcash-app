@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class FuelDistributionWidget extends ChartWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 7;
     protected int|string|array $columnSpan = 'half';
-    protected static ?string $heading = 'Distribusi Jenis BBM Bulan Ini';
+    protected static ?string $heading = 'Distribusi BBM Bulan Ini';
+    protected static ?string $maxHeight = '240px';
 
     protected function getData(): array
     {
@@ -24,13 +25,13 @@ class FuelDistributionWidget extends ChartWidget
             ->orderByDesc('total_amount')
             ->get();
 
-        // Define specific colors for common fuel types
+        // Define specific colors for common fuel types with simpler colors
         $colorMap = [
-            'Pertalite' => 'rgb(75, 192, 192)',
-            'Pertamax' => 'rgb(255, 159, 64)',
-            'Solar' => 'rgb(54, 162, 235)',
-            'Dexlite' => 'rgb(153, 102, 255)',
-            'Pertamax Turbo' => 'rgb(255, 99, 132)',
+            'Pertalite' => '#4ade80', // green
+            'Pertamax' => '#f97316',  // orange
+            'Solar' => '#3b82f6',     // blue
+            'Dexlite' => '#8b5cf6',   // purple
+            'Pertamax Turbo' => '#ec4899', // pink
         ];
 
         $colors = [];
@@ -38,14 +39,22 @@ class FuelDistributionWidget extends ChartWidget
             $colors[] = $colorMap[$fuel->name] ?? ('hsl(' . (count($colors) * 50 % 360) . ', 70%, 60%)');
         }
 
+        // Calculate percentages for labels
+        $total = $fuelData->sum('total_amount');
+        $labels = $fuelData->map(function ($item) use ($total) {
+            $percentage = $total > 0 ? round(($item->total_amount / $total) * 100) : 0;
+            return $item->name . ' (' . $percentage . '%)';
+        })->toArray();
+
         return [
             'datasets' => [
                 [
                     'data' => $fuelData->pluck('total_amount')->toArray(),
                     'backgroundColor' => $colors,
+                    'borderWidth' => 0,
                 ],
             ],
-            'labels' => $fuelData->pluck('name')->toArray(),
+            'labels' => $labels,
         ];
     }
 
@@ -57,16 +66,26 @@ class FuelDistributionWidget extends ChartWidget
     protected function getOptions(): array
     {
         return [
+            'responsive' => true,
+            'maintainAspectRatio' => false,
             'plugins' => [
                 'legend' => [
                     'position' => 'right',
+                    'labels' => [
+                        'font' => [
+                            'size' => 11,
+                        ],
+                        'padding' => 15,
+                    ],
                 ],
                 'tooltip' => [
                     'callbacks' => [
                         'label' => "function(context) {
-                            let label = context.label || '';
-                            let value = context.parsed || 0;
-                            return label + ': ' + new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
+                            return new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                maximumFractionDigits: 0
+                            }).format(context.raw);
                         }",
                     ],
                 ],
