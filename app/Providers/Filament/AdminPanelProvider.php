@@ -41,7 +41,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 // Finance overview section
-                \App\Filament\Widgets\CurrentBalanceWidget::class,
                 \App\Filament\Widgets\TransactionStatsWidget::class,
 
                 // Charts section
@@ -52,9 +51,6 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\LatestTransactionsWidget::class,
                 \App\Filament\Widgets\TopVehiclesWidget::class,
 
-                // System widgets at the bottom
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
