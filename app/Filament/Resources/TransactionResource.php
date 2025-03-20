@@ -6,6 +6,7 @@ use App\Filament\Resources\TransactionResource\Pages;
 use App\Models\Transaction;
 use App\Models\Balance;
 use App\Models\CompanySetting;
+use App\Models\FuelType;  // Add this import
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -278,8 +279,8 @@ class TransactionResource extends Resource
                                 'image/jpeg',
                                 'image/png',
                                 'image/jpg',
-                                'image/heic',
-                                'image/heif'
+                                'image.heic',
+                                'image.heif'
                             ])
                             ->maxSize(10240)
                             ->directory('invoices')
@@ -538,6 +539,148 @@ class TransactionResource extends Resource
                         return response()->streamDownload(
                             fn () => print($pdf->output()),
                             'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf'
+                        );
+                    }),
+
+                Tables\Actions\Action::make('generateCashBook')
+                    ->label('Buku Kas BBM')
+                    ->color('info')
+                    ->icon('heroicon-o-book-open')
+                    ->form([
+                        Forms\Components\Select::make('fuel_type_id')
+                            ->label('Jenis BBM')
+                            ->relationship('fuelType', 'name')
+                            ->placeholder('Semua Jenis BBM')
+                            ->searchable()
+                            ->preload(),
+
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Dari Tanggal')
+                            ->required()
+                            ->default(now()->startOfMonth()),
+
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Sampai Tanggal')
+                            ->required()
+                            ->default(now())
+                            ->afterOrEqual('start_date'),
+                    ])
+                    ->action(function (array $data) {
+                        $startDate = Carbon::parse($data['start_date']);
+                        $endDate = Carbon::parse($data['end_date']);
+
+                        // Get transactions and balances
+                        $query = Transaction::query()
+                            ->with(['fuelType', 'balance'])
+                            ->whereBetween('usage_date', [$startDate, $endDate]);
+
+                        if (!empty($data['fuel_type_id'])) {
+                            $query->where('fuel_type_id', $data['fuel_type_id']);
+                        }
+
+                        $transactions = $query->orderBy('usage_date', 'asc')
+                            ->orderBy('created_at', 'asc')
+                            ->get();
+
+                        // Get deposits
+                        $depositsQuery = Balance::query()
+                            ->whereBetween('date', [$startDate, $endDate]);
+
+                        if (!empty($data['fuel_type_id'])) {
+                            $depositsQuery->where('fuel_type_id', $data['fuel_type_id']);
+                        }
+
+                        $deposits = $depositsQuery->orderBy('date', 'asc')
+                            ->orderBy('created_at', 'asc')
+                            ->get();
+
+                        // Prepare data by fuel type
+                        $cashBookData = [];
+                        $fuelTypes = !empty($data['fuel_type_id'])
+                            ? [FuelType::find($data['fuel_type_id'])]
+                            : FuelType::all();
+
+                        foreach ($fuelTypes as $fuelType) {
+                            // Get initial balance (last balance before start date)
+                            $initialBalance = Balance::where('fuel_type_id', $fuelType->id)
+                                ->where('date', '<', $startDate)
+                                ->latest()
+                                ->first()?->remaining_balance ?? 0;
+
+                            $fuelTransactions = [];
+
+                            // Add deposits as debit transactions
+                            foreach ($deposits->where('fuel_type_id', $fuelType->id) as $deposit) {
+                                // Ensure date is a Carbon instance before formatting
+                                $depositDate = $deposit->date instanceof Carbon
+                                    ? $deposit->date
+                                    : Carbon::parse($deposit->date);
+
+                                $fuelTransactions[] = [
+                                    'date' => $depositDate->format('d/m/Y'),
+                                    'number' => 'DEP-' . $deposit->id,
+                                    'description' => 'Pengisian Kas BBM',
+                                    'debit' => $deposit->deposit_amount,
+                                    'credit' => null
+                                ];
+                            }
+
+                            // Add fuel usage as credit transactions
+                            foreach ($transactions->where('fuel_type_id', $fuelType->id) as $transaction) {
+                                // Ensure usage_date is a Carbon instance before formatting
+                                $usageDate = $transaction->usage_date instanceof Carbon
+                                    ? $transaction->usage_date
+                                    : Carbon::parse($transaction->usage_date);
+
+                                $fuelTransactions[] = [
+                                    'date' => $usageDate->format('d/m/Y'),
+                                    'number' => $transaction->transaction_number,
+                                    'description' => $transaction->usage_description,
+                                    'debit' => null,
+                                    'credit' => $transaction->amount
+                                ];
+                            }
+
+                            // Sort combined transactions by date
+                            usort($fuelTransactions, function($a, $b) {
+                                return strtotime($a['date']) - strtotime($b['date']);
+                            });
+
+                            $cashBookData[$fuelType->name] = [
+                                'initial_balance' => $initialBalance,
+                                'transactions' => $fuelTransactions
+                            ];
+                        }
+
+                        $totalDeposits = $deposits->sum('deposit_amount');
+                        $totalUsage = $transactions->sum('amount');
+                        $initialBalance = array_sum(array_column($cashBookData, 'initial_balance'));
+                        $totalCash = $initialBalance + $totalDeposits;
+                        $finalBalance = $totalCash - $totalUsage;
+
+                        $dateRange = $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y');
+
+                        $company = CompanySetting::first();
+                        $selectedFuelType = !empty($data['fuel_type_id'])
+                            ? FuelType::find($data['fuel_type_id'])->name
+                            : null;
+
+                        $pdf = Pdf::loadView('reports.cash-book', [
+                            'cashBookData' => $cashBookData,
+                            'company' => $company,
+                            'dateRange' => $dateRange,
+                            'startDate' => $startDate->format('d/m/Y'),
+                            'selectedFuelType' => $selectedFuelType,
+                            'initialBalance' => $initialBalance,
+                            'totalDeposits' => $totalDeposits,
+                            'totalCash' => $totalCash,
+                            'totalUsage' => $totalUsage,
+                            'finalBalance' => $finalBalance,
+                        ]);
+
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            'buku-kas-bbm-' . now()->format('Y-m-d') . '.pdf'
                         );
                     }),
             ])

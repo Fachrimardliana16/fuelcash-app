@@ -8,6 +8,7 @@ use App\Models\Balance;
 use App\Models\CompanySetting;
 use App\Models\FuelType;
 use App\Models\Signature;
+use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class BalanceResource extends Resource
 {
@@ -278,6 +281,85 @@ class BalanceResource extends Resource
                         return response()->streamDownload(
                             fn () => print($pdf->output()),
                             'laporan-saldo-' . now()->format('Y-m-d') . '.pdf'
+                        );
+                    }),
+                Tables\Actions\Action::make('generateBalanceSummaryReport')
+                    ->label('Laporan Rekapitulasi')
+                    ->color('success')
+                    ->icon('heroicon-o-document-chart-bar')
+                    ->form([
+                        Forms\Components\Select::make('fuel_type_id')
+                            ->label('Jenis BBM')
+                            ->options(FuelType::pluck('name', 'id'))
+                            ->placeholder('Semua Jenis BBM'),
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Tanggal Mulai')
+                            ->default(now()->startOfMonth())
+                            ->required(),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Tanggal Akhir')
+                            ->default(now())
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        $startDate = Carbon::parse($data['start_date']);
+                        $endDate = Carbon::parse($data['end_date']);
+
+                        // Get fuel types based on selection
+                        $fuelTypes = empty($data['fuel_type_id'])
+                            ? FuelType::all()
+                            : FuelType::where('id', $data['fuel_type_id'])->get();
+
+                        $summaries = [];
+
+                        foreach ($fuelTypes as $fuelType) {
+                            // Get initial balance (last balance before start date)
+                            $initialBalance = Balance::where('fuel_type_id', $fuelType->id)
+                                ->where('date', '<', $startDate)
+                                ->latest()
+                                ->first()?->remaining_balance ?? 0;
+
+                            // Get deposits during period
+                            $deposits = Balance::where('fuel_type_id', $fuelType->id)
+                                ->whereBetween('date', [$startDate, $endDate])
+                                ->sum('deposit_amount');
+
+                            // Get usage during period
+                            $usage = Transaction::where('fuel_type_id', $fuelType->id)
+                                ->whereBetween('usage_date', [$startDate, $endDate])
+                                ->sum('amount');
+
+                            // Calculate totals
+                            $totalAmount = $initialBalance + $deposits;
+                            $currentBalance = $totalAmount - $usage;
+
+                            $summaries[$fuelType->id] = [
+                                'fuel_type_name' => $fuelType->name,
+                                'initial_balance' => $initialBalance,
+                                'deposit' => $deposits,
+                                'total_amount' => $totalAmount,
+                                'usage' => $usage,
+                                'current_balance' => $currentBalance
+                            ];
+                        }
+
+                        $company = CompanySetting::first();
+
+                        $pdf = Pdf::loadView('pdf.balance-summary-report', [
+                            'summaries' => $summaries,
+                            'company' => $company,
+                            'start_date' => $data['start_date'],
+                            'end_date' => $data['end_date'],
+                            'selectedFuelTypeId' => $data['fuel_type_id'] ?? null,
+                        ]);
+
+                        $filename = empty($data['fuel_type_id'])
+                            ? 'rekap-semua-bbm-'
+                            : 'rekap-bbm-' . Str::slug($fuelTypes->first()->name) . '-';
+
+                        return response()->streamDownload(
+                            fn () => print($pdf->output()),
+                            $filename . now()->format('Y-m-d') . '.pdf'
                         );
                     }),
             ])
