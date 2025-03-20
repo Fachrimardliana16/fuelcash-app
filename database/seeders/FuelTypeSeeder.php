@@ -13,6 +13,7 @@ class FuelTypeSeeder extends Seeder
             [
                 'name' => 'Premium',
                 'desc' => 'Pertamax dan Pertalite',
+                'max_deposit' => 6750000,
                 'isactive' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -20,6 +21,15 @@ class FuelTypeSeeder extends Seeder
             [
                 'name' => 'Solar',
                 'desc' => 'Dexlite dan Biosolar',
+                'max_deposit' => 8450000,
+                'isactive' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Kekeringan',
+                'desc' => 'Bahan bakar untuk kekeringan',
+                'max_deposit' => 16000000,
                 'isactive' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

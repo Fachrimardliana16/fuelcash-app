@@ -11,7 +11,8 @@ class CompanySettingSeeder extends Seeder
     {
         CompanySetting::create([
             'government_name' => 'PEMERINTAH KABUPATEN PURBALINGGA',
-            'company_name' => 'PERUMDA AIR MINUM TIRTA PERWIRA KABUPATEN PURBALINGGA',
+            'company_name' => 'PERUMDA AIR MINUM TIRTA PERWIRA
+KABUPATEN PURBALINGGA',
             'street_address' => 'Jl. Letjend. S. Parman No. 62',
             'village' => 'Kedungmenjangan',
             'district' => 'Purbalingga',

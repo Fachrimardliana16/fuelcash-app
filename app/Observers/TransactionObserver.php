@@ -53,6 +53,9 @@ class TransactionObserver
             $newBalance = $balance->remaining_balance - $transaction->amount;
             $balance->remaining_balance = $newBalance;
             $balance->save();
+
+            // Trigger widget refresh
+            broadcast(new \App\Events\TransactionCreated())->toOthers();
         });
     }
 }
