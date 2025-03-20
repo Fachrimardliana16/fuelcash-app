@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Balance;
 use App\Models\FuelType;
+use App\Models\Transaction;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
@@ -13,7 +14,7 @@ class BalanceStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 2;
     protected int | string | array $columnSpan = 'half';
-    protected static ?string $pollingInterval = '10s';
+    protected static ?string $pollingInterval = '15s';
 
     protected function getStats(): array
     {
@@ -32,14 +33,21 @@ class BalanceStatsWidget extends BaseWidget
             // Get the remaining balance for this fuel type
             $remainingBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
 
-            // Get the date of the last deposit
-            $lastDepositDate = $latestBalance ? Carbon::parse($latestBalance->date)->format('d M Y') : 'Belum ada deposit';
-
             // Use max_deposit value from the FuelType model
             $maxBalance = $fuelType->max_deposit;
 
             // Calculate balance percentage
             $percentageFilled = $maxBalance > 0 ? min(100, ($remainingBalance / $maxBalance) * 100) : 0;
+
+            // Get average daily consumption based on last week
+            $last7DaysConsumption = Transaction::where('fuel_id', $fuelType->fuel_id)
+                ->where('usage_date', '>=', now()->subDays(7))
+                ->sum('amount');
+
+            $avgDailyConsumption = $last7DaysConsumption > 0 ? ($last7DaysConsumption / 7) : 0;
+
+            // Estimate days remaining based on average daily consumption
+            $daysRemaining = $avgDailyConsumption > 0 ? round($remainingBalance / $avgDailyConsumption) : null;
 
             // Determine color based on percentage
             $color = 'danger';
@@ -49,10 +57,18 @@ class BalanceStatsWidget extends BaseWidget
                 $color = 'warning';
             }
 
-            // Create a stat for this fuel type with simpler description
-            $stats[] = Stat::make('Saldo ' . $fuelType->name, 'Rp ' . number_format($remainingBalance, 0, ',', '.'))
-                ->description("$percentageFilled% dari maksimal · Update: $lastDepositDate")
-                ->descriptionIcon('heroicon-m-banknotes')
+            // Create a simple clear description
+            $description = new HtmlString(
+                ($daysRemaining !== null
+                    ? "<strong>{$daysRemaining} hari</strong> tersisa"
+                    : "Belum ada data konsumsi") .
+                    " · " . number_format($percentageFilled, 0) . "%"
+            );
+
+            // Create a stat for this fuel type
+            $stats[] = Stat::make($fuelType->name, 'Rp ' . number_format($remainingBalance, 0, ',', '.'))
+                ->description($description)
+                ->descriptionIcon('heroicon-m-currency-dollar')
                 ->chart([$percentageFilled, 100 - $percentageFilled])
                 ->color($color);
         }

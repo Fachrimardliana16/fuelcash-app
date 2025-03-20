@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 
 class TodayTransactionsSummaryWidget extends BaseWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
     protected int|string|array $columnSpan = 'half';
     protected static ?string $heading = 'Transaksi Hari Ini';
     protected static ?string $pollingInterval = '15s';
@@ -26,11 +26,13 @@ class TodayTransactionsSummaryWidget extends BaseWidget
             )
             ->columns([
                 Tables\Columns\TextColumn::make('usage_date')
-                    ->label('Waktu')
-                    ->time()
+                    ->label('Jam')
+                    ->time('H:i')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('license_plate')
                     ->label('Kendaraan')
+                    ->formatStateUsing(fn(string $state): string => strtoupper($state))
+                    ->weight('bold')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('fuel.name')
                     ->label('BBM')
@@ -46,13 +48,16 @@ class TodayTransactionsSummaryWidget extends BaseWidget
                     ),
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Jumlah')
-                    ->money('IDR')
+                    ->money('IDR', true)
                     ->sortable()
-                    ->alignRight(),
+                    ->alignRight()
+                    ->weight('bold'),
             ])
             ->defaultSort('usage_date', 'desc')
             ->emptyStateHeading('Belum Ada Transaksi Hari Ini')
-            ->emptyStateDescription('Transaksi hari ini akan muncul di sini.');
+            ->emptyStateDescription('Transaksi akan muncul di sini saat terjadi')
+            ->paginated([5, 10])
+            ->defaultPaginationPageOption(5);
     }
 
     // Explicitly define the record key method
