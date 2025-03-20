@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\BalanceResource\Widgets;
 
 use App\Models\Balance;
+use App\Models\FuelType;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Carbon\Carbon;
+use Illuminate\Support\HtmlString;
 
 class BalanceStatsWidget extends BaseWidget
 {
@@ -13,55 +15,46 @@ class BalanceStatsWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $now = Carbon::now();
-        $currentMonth = $now->month;
-        $currentYear = $now->year;
-        $lastMonth = $now->copy()->subMonth();
-        $lastYear = $now->copy()->subYear();
+        // Get all active fuel types
+        $fuelTypes = FuelType::where('isactive', true)->get();
 
-        // Calculate statistics
-        $currentMonthDeposit = Balance::whereMonth('date', $currentMonth)
-            ->whereYear('date', $currentYear)
-            ->sum('deposit_amount');
+        $stats = [];
 
-        $lastMonthDeposit = Balance::whereMonth('date', $lastMonth->month)
-            ->whereYear('date', $lastMonth->year)
-            ->sum('deposit_amount');
+        // Add stats for each fuel type
+        foreach ($fuelTypes as $fuelType) {
+            // Get the latest balance for this fuel type
+            $latestBalance = Balance::where('fuel_type_id', $fuelType->id)
+                ->latest()
+                ->first();
 
-        $currentYearDeposit = Balance::whereYear('date', $currentYear)
-            ->sum('deposit_amount');
+            // Get the remaining balance for this fuel type
+            $remainingBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
 
-        $lastYearDeposit = Balance::whereYear('date', $lastYear->year)
-            ->sum('deposit_amount');
+            // Get the date of the last deposit
+            $lastDepositDate = $latestBalance ? Carbon::parse($latestBalance->date)->format('d M Y') : 'Belum ada deposit';
 
-        // Calculate trends
-        $monthlyTrend = $lastMonthDeposit != 0
-            ? (($currentMonthDeposit - $lastMonthDeposit) / $lastMonthDeposit * 100)
-            : 0;
+            // Use max_deposit value from the FuelType model
+            $maxBalance = $fuelType->max_deposit;
 
-        $yearlyTrend = $lastYearDeposit != 0
-            ? (($currentYearDeposit - $lastYearDeposit) / $lastYearDeposit * 100)
-            : 0;
+            // Calculate balance percentage
+            $percentageFilled = $maxBalance > 0 ? min(100, ($remainingBalance / $maxBalance) * 100) : 0;
 
-        $lastBalance = Balance::latest()->first()?->remaining_balance ?? 0;
+            // Determine color based on percentage
+            $color = 'danger';
+            if ($percentageFilled > 50) {
+                $color = 'success';
+            } elseif ($percentageFilled > 20) {
+                $color = 'warning';
+            }
 
-        return [
-            Stat::make('Monthly Deposits', 'Rp ' . number_format($currentMonthDeposit, 0, ',', '.'))
-                ->description($monthlyTrend >= 0 ? '+' . number_format($monthlyTrend, 1) . '% dari bulan lalu' : number_format($monthlyTrend, 1) . '% from last month')
-                ->descriptionIcon($monthlyTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->color($monthlyTrend >= 0 ? 'success' : 'danger')
-                ->label('Depostit Bulanan'),
+            // Create a stat for this fuel type
+            $stats[] = Stat::make($fuelType->name . ' Sisa Saldo :', 'Rp ' . number_format($remainingBalance, 0, ',', '.'))
+                ->description(new HtmlString('Maksimal: Rp ' . number_format($maxBalance, 0, ',', '.') . '<br>Deposit terakhir: ' . $lastDepositDate))
+                ->descriptionIcon('heroicon-m-arrow-up-circle')
+                ->chart([round($percentageFilled, 1), 100 - round($percentageFilled, 1)])
+                ->color($color);
+        }
 
-            Stat::make('Yearly Deposits', 'Rp ' . number_format($currentYearDeposit, 0, ',', '.'))
-                ->description($yearlyTrend >= 0 ? '+' . number_format($yearlyTrend, 1) . '% dari tahun lalu' : number_format($yearlyTrend, 1) . '% from last year')
-                ->descriptionIcon($yearlyTrend >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-                ->color($yearlyTrend >= 0 ? 'success' : 'danger')
-                ->label('Depostit Tahunan'),
-
-            Stat::make('Current Balance', 'Rp ' . number_format($lastBalance, 0, ',', '.'))
-                ->description('Update Terakhir: ' . Carbon::parse(Balance::latest()->first()?->date)->diffForHumans())
-                ->color($lastBalance > 1000000 ? 'success' : 'danger')
-                ->label('Saldo Saat Ini'),
-        ];
+        return $stats;
     }
 }
