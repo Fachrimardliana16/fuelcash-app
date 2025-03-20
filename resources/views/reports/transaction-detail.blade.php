@@ -242,7 +242,7 @@
         </div>
     </div>
 
-    <div class="document-title">LAPORAN DETAIL TRANSAKSI #{{ $transaction->id }}</div>
+    <div class="document-title">LAPORAN DETAIL TRANSAKSI</div>
 
     <div class="header">
         <div class="transaction-meta">
@@ -309,11 +309,6 @@
             <tr>
                 <td class="label">Volume BBM</td>
                 <td class="value">{{ number_format($transaction->volume, 2, ',', '.') }} Liter</td>
-            </tr>
-            <tr>
-                <td class="label">Sisa Saldo</td>
-                <td class="value money-value">Rp
-                    {{ number_format($transaction->balance->remaining_balance ?? 0, 0, ',', '.') }}</td>
             </tr>
         </table>
     </div>

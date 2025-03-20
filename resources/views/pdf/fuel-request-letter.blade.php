@@ -140,6 +140,12 @@
 
         .signature-title {
             font-weight: bold;
+            margin-bottom: 80px;
+            /* Adjusted space before name */
+            min-height: 60px;  /* Added minimum height for alignment */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
 
         .signature-table {
@@ -147,46 +153,32 @@
             border-collapse: collapse;
             margin-top: 5px;
             margin-bottom: 10px;
+            table-layout: fixed;  /* Added for consistent column widths */
         }
 
         .signature-table td {
             width: 50%;
             vertical-align: top;
-            padding: 0 5px;
+            padding: 0 30px;  /* Increased padding */
             text-align: center;
             border: none;
         }
 
         .signature-name {
             font-weight: bold;
-            padding-top: 3px;
-            border-top: 1px solid #000;
-            display: inline-block;
-            min-width: 150px;
             font-size: 10pt;
-            margin-top: 45px;
+            margin: 0;
+            padding: 0;
+            min-width: 250px;  /* Increased minimum width */
+            display: inline-block;
         }
 
         .signature-bottom {
-            margin-top: 15px;
-            text-align: center;
-        }
-
-        .signature-bottom .signature-name {
-            margin-top: 45px;
-        }
-
-        .signature-title {
-            font-weight: bold;
-            margin-bottom: 60px;
-            /* Adjusted margin */
-        }
-
-        .signature-box-bottom {
-            text-align: center;
             margin-top: 30px;
-            /* Reduced margin */
-            position: relative;
+            text-align: center;
+            width: 60%;  /* Added fixed width */
+            margin-left: auto;  /* Center the bottom signature */
+            margin-right: auto;
         }
 
         .signature-space {
@@ -218,54 +210,9 @@
             justify-content: center;
         }
 
-        .signature-name {
-            font-weight: bold;
-            padding-top: 3px;
-            border-top: 1px solid #000;
-            display: inline-block;
-            min-width: 200px;
-            font-size: 10pt;
-        }
-
-        .signature-nip {
-            font-size: 9pt;
-            margin-top: 0;
-        }
-
-        .letter-footer {
-            margin-top: 8px;
-            font-size: 8pt;
-            color: #666;
-            text-align: center;
-            border-top: 1px solid #ddd;
-            padding-top: 2px;
-        }
-
         .compact-text {
             margin: 0;
             padding: 0;
-        }
-
-        .signature-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-            /* Adjusted margin */
-        }
-
-        .signature-table td {
-            width: 50%;
-            vertical-align: top;
-            padding: 0 20px;
-            /* Adjusted padding */
-            text-align: center;
-            border: none;
-        }
-
-        .signature-bottom {
-            margin-top: 40px;
-            /* Adjusted margin */
-            text-align: center;
         }
 
         .stamp-area {
@@ -333,13 +280,19 @@
             <!-- Table-based signature layout for better alignment -->
             <table class="signature-table">
                 <tr>
+                    @php $firstSig = true; @endphp
                     @foreach($signatures->where('order', '<', 3) as $signature)
                     <td>
-                        <p class="signature-title">{{ $signature->position }}</p>
-                        <p class="signature-name">{{ $signature->name }}</p>
-                        @if($signature->nip)
-                        <p class="signature-nip">NIP. {{ $signature->nip }}</p>
+                        @if($firstSig)
+                            <p class="signature-title">{{ $signature->title }},<br>{{ $signature->position }}</p>
+                        @else
+                            <p class="signature-title"><br>{{ $signature->position }}</p>
                         @endif
+                        <p class="signature-name">{{ $signature->name }}<br>
+                        @if($signature->nip)
+                        <span class="signature-nip">NIP. {{ $signature->nip }}</span>
+                        @endif</p>
+                        @php $firstSig = false; @endphp
                     </td>
                     @endforeach
                 </tr>
@@ -354,18 +307,12 @@
                     <div class="stamp-placeholder">Stempel</div>
                 </div>
                 @endif
-                <p class="signature-name">{{ $bottomSignature->name }}</p>
+                <p class="signature-name">{{ $bottomSignature->name }}<br>
                 @if($bottomSignature->nip)
-                <p class="signature-nip">NIP. {{ $bottomSignature->nip }}</p>
-                @endif
+                <span class="signature-nip">NIP. {{ $bottomSignature->nip }}</span>
+                @endif</p>
                 @endif
             </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="letter-footer">
-            <p class="compact-text">{!! nl2br(e($company->company_name)) !!} | {{ $company->street_address }},
-                {{ $company->village }}, {{ $company->district }}, {{ $company->regency }}, {{ $company->province }} {{ $company->postal_code }}</p>
         </div>
     </div>
 </body>
