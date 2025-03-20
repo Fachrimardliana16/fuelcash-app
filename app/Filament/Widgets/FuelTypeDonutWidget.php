@@ -13,34 +13,17 @@ class FuelTypeDonutWidget extends ChartWidget implements Forms\Contracts\HasForm
 {
     use Forms\Concerns\InteractsWithForms;
 
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
     protected int|string|array $columnSpan = 'half';
-    protected static ?string $heading = 'Bahan Bakar Paling Sering Digunakan';
-    protected static ?string $pollingInterval = null;
+    protected static ?string $heading = 'Penggunaan BBM';
+    protected static ?string $maxHeight = '300px';
 
     // Filter properties
-    public ?string $dateRange = 'all';
+    public ?string $dateRange = 'month';
 
     protected function getType(): string
     {
         return 'doughnut';
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('dateRange')
-                    ->options([
-                        'all' => 'All Time',
-                        'today' => 'Today',
-                        'week' => 'This Week',
-                        'month' => 'This Month',
-                        'year' => 'This Year',
-                    ])
-                    ->default('all')
-                    ->live(),
-            ]);
     }
 
     protected function getData(): array
@@ -50,9 +33,6 @@ class FuelTypeDonutWidget extends ChartWidget implements Forms\Contracts\HasForm
             ->join('fuels', 'transactions.fuel_id', '=', 'fuels.id');
 
         switch ($this->dateRange) {
-            case 'today':
-                $query->whereDate('usage_date', Carbon::today());
-                break;
             case 'week':
                 $query->whereDate('usage_date', '>=', Carbon::now()->startOfWeek());
                 break;
@@ -62,28 +42,40 @@ class FuelTypeDonutWidget extends ChartWidget implements Forms\Contracts\HasForm
             case 'year':
                 $query->whereDate('usage_date', '>=', Carbon::now()->startOfYear());
                 break;
+            case 'quarter':
+                $query->whereDate('usage_date', '>=', Carbon::now()->startOfQuarter());
+                break;
         }
 
         $fuelData = $query
             ->select('fuels.name', DB::raw('COUNT(*) as count'), DB::raw('SUM(amount) as total_amount'))
             ->groupBy('fuels.id', 'fuels.name')
             ->orderByDesc('count')
-            ->limit(10)
             ->get();
 
-        // Generate more pleasing colors for the chart
+        // Define specific colors for common fuel types
+        $colorMap = [
+            'Pertalite' => '#4ade80', // green
+            'Pertamax' => '#f97316', // orange
+            'Solar' => '#3b82f6', // blue
+            'Dexlite' => '#8b5cf6', // purple
+            'Pertamax Turbo' => '#ec4899', // pink
+        ];
+
         $colors = [];
-        for ($i = 0; $i < $fuelData->count(); $i++) {
-            $hue = ($i * 360 / $fuelData->count()) % 360;
-            $colors[] = "hsl($hue, 70%, 60%)";
+        foreach ($fuelData as $fuel) {
+            $colors[] = $colorMap[$fuel->name] ?? ('hsl(' . (count($colors) * 50 % 360) . ', 70%, 60%)');
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Fuel Types',
+                    'label' => 'Jumlah Transaksi',
                     'data' => $fuelData->pluck('count')->toArray(),
                     'backgroundColor' => $colors,
+                    'borderColor' => '#ffffff',
+                    'borderWidth' => 2,
+                    'hoverOffset' => 10,
                 ],
             ],
             'labels' => $fuelData->pluck('name')->toArray(),
@@ -93,16 +85,30 @@ class FuelTypeDonutWidget extends ChartWidget implements Forms\Contracts\HasForm
     protected function getOptions(): array
     {
         return [
+            'responsive' => true,
+            'maintainAspectRatio' => false,
             'plugins' => [
                 'legend' => [
-                    'display' => true,
                     'position' => 'right',
+                    'labels' => [
+                        'font' => [
+                            'size' => 11,
+                        ],
+                        'padding' => 20,
+                    ],
                 ],
                 'tooltip' => [
-                    'enabled' => true,
+                    'callbacks' => [
+                        'label' => "function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }",
+                    ],
                 ],
             ],
-            'maintainAspectRatio' => false,
         ];
     }
 
@@ -110,14 +116,14 @@ class FuelTypeDonutWidget extends ChartWidget implements Forms\Contracts\HasForm
     {
         return [
             Forms\Components\Select::make('dateRange')
+                ->label('Periode')
                 ->options([
-                    'all' => 'All Time',
-                    'today' => 'Today',
-                    'week' => 'This Week',
-                    'month' => 'This Month',
-                    'year' => 'This Year',
+                    'week' => 'Minggu Ini',
+                    'month' => 'Bulan Ini',
+                    'quarter' => 'Kuartal Ini',
+                    'year' => 'Tahun Ini',
                 ])
-                ->default('all')
+                ->default('month')
                 ->live()
                 ->afterStateUpdated(fn() => $this->refreshChart()),
         ];

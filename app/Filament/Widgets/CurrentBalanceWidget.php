@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 
 class CurrentBalanceWidget extends BaseWidget
 {
@@ -17,48 +18,54 @@ class CurrentBalanceWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        // Get all active fuel types
-        $fuelTypes = FuelType::where('isactive', true)->get();
+        // Calculate total balance
+        $totalBalance = Balance::whereIn(
+            'fuel_type_id',
+            FuelType::where('isactive', true)->pluck('id')
+        )
+            ->whereIn('id', function ($query) {
+                $query->selectRaw('MAX(id)')
+                    ->from('balances')
+                    ->groupBy('fuel_type_id');
+            })
+            ->sum('remaining_balance');
 
-        $stats = [];
-
-        // Add overall balance stat
-        $totalBalance = 0;
-        foreach ($fuelTypes as $fuelType) {
-            $latestBalance = Balance::where('fuel_type_id', $fuelType->id)
-                ->latest()
-                ->first();
-
-            $totalBalance += $latestBalance ? $latestBalance->remaining_balance : 0;
-        }
-
+        // Get key transaction metrics
         $todayTransactions = Transaction::whereDate('usage_date', Carbon::today())->sum('amount');
         $yesterdayTransactions = Transaction::whereDate('usage_date', Carbon::yesterday())->sum('amount');
-
-        $stats[] = Stat::make('Total Saldo Saat Ini', 'Rp ' . number_format($totalBalance, 0, ',', '.'))
-            ->description('Seluruh saldo BBM yang tersedia')
-            ->descriptionIcon('heroicon-m-banknotes')
-            ->color('success');
-
-        $stats[] = Stat::make('Transaksi Hari Ini', 'Rp ' . number_format($todayTransactions, 0, ',', '.'))
-            ->description('Total pengeluaran hari ini')
-            ->descriptionIcon('heroicon-m-arrow-trending-down')
-            ->color('danger');
-
-        $stats[] = Stat::make('Transaksi Kemarin', 'Rp ' . number_format($yesterdayTransactions, 0, ',', '.'))
-            ->description('Total pengeluaran kemarin')
-            ->descriptionIcon('heroicon-m-calendar')
-            ->color('warning');
-
         $thisMonthSpending = Transaction::whereMonth('usage_date', Carbon::now()->month)
             ->whereYear('usage_date', Carbon::now()->year)
             ->sum('amount');
+        $lastMonthTotal = Transaction::whereMonth('usage_date', Carbon::now()->subMonth()->month)
+            ->whereYear('usage_date', Carbon::now()->subMonth()->year)
+            ->sum('amount');
 
-        $stats[] = Stat::make('Pengeluaran Bulan Ini', 'Rp ' . number_format($thisMonthSpending, 0, ',', '.'))
-            ->description('Total bulan ' . Carbon::now()->format('F Y'))
-            ->descriptionIcon('heroicon-m-chart-bar')
-            ->color('info');
+        // Calculate month progress percentage
+        $dayOfMonth = Carbon::now()->day;
+        $daysInMonth = Carbon::now()->daysInMonth;
+        $monthProgress = ($dayOfMonth / $daysInMonth) * 100;
 
-        return $stats;
+        // Create simplified, compact stats
+        return [
+            Stat::make('Total Saldo', 'Rp ' . number_format($totalBalance, 0, ',', '.'))
+                ->description('Jumlah seluruh saldo BBM')
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('success'),
+
+            Stat::make('Hari Ini', 'Rp ' . number_format($todayTransactions, 0, ',', '.'))
+                ->description('vs kemarin: Rp ' . number_format($yesterdayTransactions, 0, ',', '.'))
+                ->descriptionIcon('heroicon-m-calendar-days')
+                ->color('primary'),
+
+            Stat::make('Bulan Ini', 'Rp ' . number_format($thisMonthSpending, 0, ',', '.'))
+                ->description(number_format($monthProgress, 0) . '% dari bulan berjalan')
+                ->descriptionIcon('heroicon-m-chart-bar')
+                ->color('warning'),
+
+            Stat::make('vs Bulan Lalu', number_format(($lastMonthTotal > 0 ? $thisMonthSpending / $lastMonthTotal * 100 : 0), 0) . '%')
+                ->description('Bulan lalu: Rp ' . number_format($lastMonthTotal, 0, ',', '.'))
+                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->color($thisMonthSpending > $lastMonthTotal ? 'danger' : 'success'),
+        ];
     }
 }

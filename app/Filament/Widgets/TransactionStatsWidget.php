@@ -3,18 +3,24 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Transaction;
+use App\Models\FuelType;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class TransactionStatsWidget extends ChartWidget
 {
     protected static ?int $sort = 4;
     protected int | string | array $columnSpan = 'half';
+    protected static ?string $maxHeight = '300px';
 
     // Use this property to define how filters should be applied
     protected static string $defaultFilterKey = 'period';
+
+    // Add fuel type filter
+    public ?string $fuelFilter = 'all';
 
     public function getHeading(): ?string
     {
@@ -24,10 +30,10 @@ class TransactionStatsWidget extends ChartWidget
     protected function getFilters(): ?array
     {
         return [
-            'hourly' => 'Per Jam (24 jam terakhir)',
             'daily' => 'Harian (30 hari terakhir)',
             'monthly' => 'Bulanan (12 bulan terakhir)',
-            'custom_range' => 'Rentang Khusus Tanggal',
+            'yearlyComparison' => 'Perbandingan Tahunan',
+            'custom_range' => 'Rentang Kustom',
         ];
     }
 
@@ -44,22 +50,24 @@ class TransactionStatsWidget extends ChartWidget
             return $this->getCustomRangeData($startDate, $endDate);
         }
 
-        // Otherwise, use the filter value to determine which data to show
-        switch ($filter) {
-            case 'hourly':
-                return $this->getHourlyData();
-            case 'daily':
-                return $this->getDailyData();
-            case 'monthly':
-                return $this->getMonthlyData();
-            default:
-                return $this->getDailyData();
+        // For yearly comparison
+        if ($filter === 'yearlyComparison') {
+            return $this->getYearlyComparisonData();
         }
+
+        // Otherwise, use the filter value to determine which data to show
+        return match ($filter) {
+            'monthly' => $this->getMonthlyData(),
+            default => $this->getDailyData(),
+        };
     }
 
     // Add extra form components for the custom range
     protected function getFilterForm(): array
     {
+        $fuelTypes = FuelType::where('isactive', true)->pluck('name', 'id')->toArray();
+        $fuelTypes = ['all' => 'Semua Jenis BBM'] + $fuelTypes;
+
         return [
             DatePicker::make('start_date')
                 ->visible(fn(callable $get, $set) => $this->filter === 'custom_range')
@@ -70,19 +78,33 @@ class TransactionStatsWidget extends ChartWidget
                 ->visible(fn(callable $get, $set) => $this->filter === 'custom_range')
                 ->default(today())
                 ->reactive(),
+
+            Select::make('fuelFilter')
+                ->label('Jenis BBM')
+                ->options($fuelTypes)
+                ->default('all')
+                ->reactive()
+                ->afterStateUpdated(fn() => $this->refreshChart()),
         ];
     }
 
     // Show the specific form when custom range is selected
     public function filterFormVisible(): bool
     {
-        return $this->filter === 'custom_range';
+        return true; // Always show the form for fuel type filter
     }
 
     protected function getDailyData(): array
     {
-        $transactions = Transaction::selectRaw('DATE(usage_date) as date, SUM(amount) as total')
-            ->whereDate('usage_date', '>=', Carbon::now()->subDays(30))
+        $query = Transaction::query()
+            ->whereDate('usage_date', '>=', Carbon::now()->subDays(30));
+
+        // Apply fuel filter if needed
+        if ($this->fuelFilter !== 'all') {
+            $query->where('fuel_id', $this->fuelFilter);
+        }
+
+        $transactions = $query->selectRaw('DATE(usage_date) as date, SUM(amount) as total')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -107,8 +129,13 @@ class TransactionStatsWidget extends ChartWidget
                 [
                     'label' => 'Transaksi Harian',
                     'data' => $data,
-                    'borderColor' => '#36A2EB',
-                    'fill' => false,
+                    'borderColor' => '#4ade80',
+                    'backgroundColor' => 'rgba(74, 222, 128, 0.1)',
+                    'fill' => true,
+                    'tension' => 0.4,
+                    'borderWidth' => 2,
+                    'pointRadius' => 2,
+                    'pointHoverRadius' => 5,
                 ]
             ],
         ];
@@ -116,8 +143,15 @@ class TransactionStatsWidget extends ChartWidget
 
     protected function getMonthlyData(): array
     {
-        $transactions = Transaction::selectRaw('YEAR(usage_date) as year, MONTH(usage_date) as month, SUM(amount) as total')
-            ->whereDate('usage_date', '>=', Carbon::now()->subMonths(12)->startOfMonth())
+        $query = Transaction::query()
+            ->whereDate('usage_date', '>=', Carbon::now()->subMonths(12)->startOfMonth());
+
+        // Apply fuel filter if needed
+        if ($this->fuelFilter !== 'all') {
+            $query->where('fuel_id', $this->fuelFilter);
+        }
+
+        $transactions = $query->selectRaw('YEAR(usage_date) as year, MONTH(usage_date) as month, SUM(amount) as total')
             ->groupBy(['year', 'month'])
             ->orderBy('year')
             ->orderBy('month')
@@ -156,8 +190,15 @@ class TransactionStatsWidget extends ChartWidget
 
     protected function getYearlyData(): array
     {
-        $transactions = Transaction::selectRaw('YEAR(usage_date) as year, SUM(amount) as total')
-            ->whereDate('usage_date', '>=', Carbon::now()->subYears(5)->startOfYear())
+        $query = Transaction::query()
+            ->whereDate('usage_date', '>=', Carbon::now()->subYears(5)->startOfYear());
+
+        // Apply fuel filter if needed
+        if ($this->fuelFilter !== 'all') {
+            $query->where('fuel_id', $this->fuelFilter);
+        }
+
+        $transactions = $query->selectRaw('YEAR(usage_date) as year, SUM(amount) as total')
             ->groupBy('year')
             ->orderBy('year')
             ->get();
@@ -199,9 +240,16 @@ class TransactionStatsWidget extends ChartWidget
 
         if ($diffInDays > 90) {
             // For ranges longer than 3 months, group by month
-            $transactions = Transaction::selectRaw('YEAR(usage_date) as year, MONTH(usage_date) as month, SUM(amount) as total')
+            $query = Transaction::query()
                 ->whereDate('usage_date', '>=', $start)
-                ->whereDate('usage_date', '<=', $end)
+                ->whereDate('usage_date', '<=', $end);
+
+            // Apply fuel filter if needed
+            if ($this->fuelFilter !== 'all') {
+                $query->where('fuel_id', $this->fuelFilter);
+            }
+
+            $transactions = $query->selectRaw('YEAR(usage_date) as year, MONTH(usage_date) as month, SUM(amount) as total')
                 ->groupBy(['year', 'month'])
                 ->orderBy('year')
                 ->orderBy('month')
@@ -226,9 +274,16 @@ class TransactionStatsWidget extends ChartWidget
             }
         } else {
             // For shorter ranges, group by day
-            $transactions = Transaction::selectRaw('DATE(usage_date) as date, SUM(amount) as total')
+            $query = Transaction::query()
                 ->whereDate('usage_date', '>=', $start)
-                ->whereDate('usage_date', '<=', $end)
+                ->whereDate('usage_date', '<=', $end);
+
+            // Apply fuel filter if needed
+            if ($this->fuelFilter !== 'all') {
+                $query->where('fuel_id', $this->fuelFilter);
+            }
+
+            $transactions = $query->selectRaw('DATE(usage_date) as date, SUM(amount) as total')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
@@ -263,8 +318,15 @@ class TransactionStatsWidget extends ChartWidget
 
     protected function getHourlyData(): array
     {
-        $transactions = Transaction::selectRaw('DATE_FORMAT(usage_date, "%Y-%m-%d %H:00:00") as hour, SUM(amount) as total')
-            ->where('usage_date', '>=', Carbon::now()->subHours(24))
+        $query = Transaction::query()
+            ->where('usage_date', '>=', Carbon::now()->subHours(24));
+
+        // Apply fuel filter if needed
+        if ($this->fuelFilter !== 'all') {
+            $query->where('fuel_id', $this->fuelFilter);
+        }
+
+        $transactions = $query->selectRaw('DATE_FORMAT(usage_date, "%Y-%m-%d %H:00:00") as hour, SUM(amount) as total')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();
@@ -297,25 +359,83 @@ class TransactionStatsWidget extends ChartWidget
         ];
     }
 
+    protected function getYearlyComparisonData(): array
+    {
+        // Get current year and previous year data for comparison
+        $currentYear = Carbon::now()->year;
+        $previousYear = $currentYear - 1;
+
+        $query = Transaction::query();
+
+        // Apply fuel filter if needed
+        if ($this->fuelFilter !== 'all') {
+            $query->where('fuel_id', $this->fuelFilter);
+        }
+
+        $currentYearData = (clone $query)
+            ->whereYear('usage_date', $currentYear)
+            ->selectRaw('MONTH(usage_date) as month, SUM(amount) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
+
+        $previousYearData = (clone $query)
+            ->whereYear('usage_date', $previousYear)
+            ->selectRaw('MONTH(usage_date) as month, SUM(amount) as total')
+            ->groupBy('month')
+            ->pluck('total', 'month')
+            ->toArray();
+
+        $labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $currentYearValues = [];
+        $previousYearValues = [];
+
+        for ($i = 1; $i <= 12; $i++) {
+            $currentYearValues[] = $currentYearData[$i] ?? 0;
+            $previousYearValues[] = $previousYearData[$i] ?? 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'label' => "Tahun $currentYear",
+                    'data' => $currentYearValues,
+                    'borderColor' => '#36A2EB',
+                    'backgroundColor' => 'rgba(54, 162, 235, 0.2)',
+                    'fill' => true,
+                ],
+                [
+                    'label' => "Tahun $previousYear",
+                    'data' => $previousYearValues,
+                    'borderColor' => '#FF6384',
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.2)',
+                    'fill' => true,
+                ]
+            ],
+        ];
+    }
+
     protected function getOptions(): array
     {
         return [
+            'responsive' => true,
+            'maintainAspectRatio' => false,
             'plugins' => [
                 'legend' => [
-                    'display' => true,
+                    'display' => false,
                 ],
                 'tooltip' => [
                     'enabled' => true,
+                    'mode' => 'index',
+                    'intersect' => false,
                     'callbacks' => [
                         'label' => "function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
-                            }
-                            return label;
+                            return new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                maximumFractionDigits: 0
+                            }).format(context.parsed.y);
                         }",
                     ],
                 ],
@@ -323,33 +443,26 @@ class TransactionStatsWidget extends ChartWidget
             'scales' => [
                 'x' => [
                     'grid' => [
-                        'display' => true,
-                        'color' => 'rgba(0, 0, 0, 0.1)',
+                        'display' => false,
+                    ],
+                    'ticks' => [
+                        'maxRotation' => 45,
+                        'minRotation' => 45,
                     ],
                 ],
                 'y' => [
                     'beginAtZero' => true,
                     'grid' => [
-                        'display' => true,
-                        'color' => 'rgba(0, 0, 0, 0.1)',
-                        'drawBorder' => true,
+                        'drawBorder' => false,
                     ],
                     'ticks' => [
                         'callback' => "function(value) {
-                            return 'Rp ' + value.toLocaleString('id-ID');
+                            if (value >= 1000000) {
+                                return 'Rp ' + (value / 1000000).toFixed(1) + ' Jt';
+                            }
+                            return 'Rp ' + (value / 1000).toFixed(0) + ' Rb';
                         }",
                     ],
-                ],
-            ],
-            'elements' => [
-                'line' => [
-                    'tension' => 0.3, // Makes the line a bit smoother
-                    'borderWidth' => 2,
-                ],
-                'point' => [
-                    'radius' => 3,
-                    'hitRadius' => 10,
-                    'hoverRadius' => 5,
                 ],
             ],
         ];

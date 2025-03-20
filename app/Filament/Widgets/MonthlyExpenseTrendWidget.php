@@ -8,9 +8,10 @@ use Illuminate\Support\Carbon;
 
 class MonthlyExpenseTrendWidget extends ChartWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 6;
     protected int | string | array $columnSpan = 'half';
-    protected static ?string $heading = 'Tren Pengeluaran 6 Bulan Terakhir';
+    protected static ?string $heading = 'Tren Pengeluaran 6 Bulan';
+    protected static ?string $maxHeight = '240px';
 
     protected function getData(): array
     {
@@ -32,9 +33,9 @@ class MonthlyExpenseTrendWidget extends ChartWidget
 
             // Current month is highlighted
             if ($i === 0) {
-                $colors[] = 'rgba(59, 130, 246, 0.8)'; // Highlighted color
+                $colors[] = 'rgba(59, 130, 246, 0.9)'; // Current month - blue
             } else {
-                $colors[] = 'rgba(59, 130, 246, 0.5)';
+                $colors[] = 'rgba(156, 163, 175, 0.6)'; // Past months - gray
             }
         }
 
@@ -66,17 +67,29 @@ class MonthlyExpenseTrendWidget extends ChartWidget
                     'enabled' => true,
                     'callbacks' => [
                         'label' => "function(context) {
-                            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(context.parsed.y);
+                            return new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: 'IDR',
+                                maximumFractionDigits: 0
+                            }).format(context.parsed.y);
                         }",
                     ],
                 ],
             ],
             'scales' => [
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
                 'y' => [
                     'beginAtZero' => true,
                     'ticks' => [
                         'callback' => "function(value) {
-                            return 'Rp ' + value.toLocaleString('id-ID');
+                            if (value >= 1000000) {
+                                return 'Rp ' + (value / 1000000).toFixed(1) + ' Jt';
+                            }
+                            return 'Rp ' + (value / 1000).toFixed(0) + ' Rb';
                         }",
                     ],
                 ],
