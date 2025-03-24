@@ -49,6 +49,34 @@ class VehicleResource extends Resource
                                 'regex' => 'Format Nomor Kendaraan tidak valid',
                                 'unique' => 'Nomor Kendaraan sudah terdaftar',
                             ]),
+                        Forms\Components\Select::make('vehicle_model')
+                            ->label('Tipe Kendaraan')
+                            ->options([
+                                'Pickup' => 'Pickup',
+                                'Bebek' => 'Bebek',
+                                'Matic' => 'Matic',
+                                'SUV' => 'SUV',
+                                'MPV' => 'MPV',
+                                'Sport' => 'Sport',
+                            ]),
+                        Forms\Components\Select::make('brand')
+                            ->label('Merk')
+                            ->options([
+                                'Honda' => 'Honda',
+                                'Toyota' => 'Toyota',
+                                'Nissan' => 'Nissan',
+                                'Suzuki' => 'Suzuki',
+                                'Yamaha' => 'Yamaha',
+                                'Kawasaki' => 'Kawasaki',
+                                'Mitsubishi' => 'Mitsubishi',
+                                'Daihatsu' => 'Daihatsu',
+                                'Other' => 'Lainnya',
+                            ]),
+                        Forms\Components\TextInput::make('detail')
+                            ->label('Detail Kendaraan')
+                            ->placeholder('Contoh: Isuzu Panther Touring, Toyota Kijang Innova V 2.4 atau lainnya')
+                            ->helperText('Masukkan detail spesifik kendaraan seperti tipe dan varian')
+                            ->columnSpanFull(),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Data Kepemilikan')
@@ -60,6 +88,14 @@ class VehicleResource extends Resource
                             ->validationMessages([
                                 'required' => 'Nama pemilik harus diisi',
                             ]),
+                        Forms\Components\Select::make('ownership_type')
+                            ->label('Jenis Kepemilikan')
+                            ->options([
+                                'Inventaris' => 'Inventaris',
+                                'Pribadi' => 'Pribadi',
+                            ])
+                            ->required()
+                            ->default('Inventaris'),
                         Forms\Components\Toggle::make('isactive')
                             ->label('Status Aktif')
                             ->required()
@@ -84,9 +120,25 @@ class VehicleResource extends Resource
                     ->copyable()
                     ->copyMessage('Nomor Kendaraan berhasil disalin')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('vehicle_model')
+                    ->label('Tipe')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('brand')
+                    ->label('Merk')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('detail')
+                    ->label('Detail')
+                    ->searchable()
+                    ->sortable()
+                    ->description(fn ($record): string => $record->brand . ' ' . $record->vehicle_model),
                 Tables\Columns\TextColumn::make('owner')
                     ->label('Pemilik')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('ownership_type')
+                    ->label('Kepemilikan')
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('isactive')
                     ->label('Status')

@@ -110,13 +110,56 @@ class ViewTransaction extends ViewRecord
                 Components\Section::make('Data Kendaraan')
                     ->description('Informasi kendaraan yang digunakan')
                     ->schema([
-                        Components\TextEntry::make('vehicle.license_plate')
-                            ->label('Nomor Kendaraan'),
-                        Components\TextEntry::make('vehicle.vehicleType.name')
-                            ->label('Jenis Kendaraan'),
-                        Components\TextEntry::make('owner')
-                            ->label('Pemilik'),
-                    ])->columns(3),
+                        Components\Grid::make(1)
+                            ->schema([
+                                Components\TextEntry::make('vehicle.license_plate')
+                                    ->label('Nomor Kendaraan')
+                                    ->weight('bold')
+                                    ->size('lg')
+                                    ->copyable()
+                                    ->copyMessage('Nomor kendaraan berhasil disalin')
+                                    ->copyMessageDuration(1500),
+                            ]),
+                        Components\Grid::make(3)
+                            ->schema([
+                                Components\Group::make([
+                                    Components\TextEntry::make('vehicle.vehicleType.name')
+                                        ->label('Jenis Kendaraan')
+                                        ->icon('heroicon-m-truck')
+                                        ->iconColor('primary'),
+                                    Components\TextEntry::make('owner')
+                                        ->label('Pemilik')
+                                        ->icon('heroicon-m-user')
+                                        ->iconColor('success'),
+                                ]),
+                                Components\Group::make([
+                                    Components\TextEntry::make('vehicle.brand')
+                                        ->label('Merk')
+                                        ->icon('heroicon-m-building-storefront')
+                                        ->iconColor('warning'),
+                                    Components\TextEntry::make('vehicle.vehicle_model')
+                                        ->label('Model')
+                                        ->icon('heroicon-m-cube')
+                                        ->iconColor('warning'),
+                                ]),
+                                Components\Group::make([
+                                    Components\TextEntry::make('vehicle.detail')
+                                        ->label('Detail Kendaraan')
+                                        ->icon('heroicon-m-information-circle')
+                                        ->iconColor('info')
+                                        ->placeholder('-'),
+                                    Components\TextEntry::make('vehicle.ownership_type')
+                                        ->label('Kepemilikan')
+                                        ->badge()
+                                        ->icon('heroicon-m-key')
+                                        ->color(fn (string $state): string => match ($state) {
+                                            'Inventaris' => 'success',
+                                            'Pribadi' => 'warning',
+                                            default => 'gray',
+                                        }),
+                                ]),
+                            ]),
+                    ])->collapsible(),
 
                 Components\Section::make('Data Penggunaan BBM')
                     ->description('Informasi penggunaan bahan bakar')

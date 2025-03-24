@@ -14,6 +14,10 @@ return new class extends Migration
             $table->string('license_plate')->unique();
             $table->string('owner');
             $table->foreignId('vehicle_type_id')->constrained();
+            $table->enum('vehicle_model', ['Pickup', 'Bebek', 'Matic', 'SUV', 'MPV', 'Sport'])->nullable();
+            $table->enum('brand', ['Honda', 'Toyota', 'Nissan', 'Suzuki', 'Yamaha', 'Kawasaki', 'Mitsubishi', 'Daihatsu', 'Other'])->nullable();
+            $table->string('detail')->nullable(); // Add this line
+            $table->enum('ownership_type', ['Inventaris', 'Pribadi'])->default('Inventaris');
             $table->boolean('isactive')->default(true)->index();
             $table->timestamps();
             $table->softDeletes();
