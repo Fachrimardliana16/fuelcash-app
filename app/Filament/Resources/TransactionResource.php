@@ -44,45 +44,87 @@ class TransactionResource extends Resource
                 Forms\Components\Section::make('Data Kendaraan')
                     ->description('Informasi kendaraan yang digunakan')
                     ->schema([
-                        Forms\Components\Select::make('vehicles_id')
-                            ->relationship('vehicle', 'license_plate', fn($query) => $query->where('isactive', true))
-                            ->getOptionLabelFromRecordUsing(fn($record) => "{$record->license_plate} - {$record->owner}")
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->label('Nomor Kendaraan')
-                            ->placeholder('Pilih Nomor Kendaraan kendaraan')
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state) {
-                                    $vehicle = \App\Models\Vehicle::with('vehicleType')->find($state);
-                                    if ($vehicle) {
-                                        $set('license_plate', $vehicle->license_plate);
-                                        $set('vehicle_type_id', $vehicle->vehicle_type_id);
-                                        $set('vehicle_type_name', $vehicle->vehicleType->name);
-                                        $set('owner', $vehicle->owner);
-                                    }
-                                } else {
-                                    $set('license_plate', null);
-                                    $set('vehicle_type_id', null);
-                                    $set('vehicle_type_name', null);
-                                    $set('owner', null);
-                                }
-                            }),
+                        Forms\Components\Grid::make(1)
+                            ->schema([
+                                Forms\Components\Select::make('vehicles_id')
+                                    ->relationship('vehicle', 'license_plate', fn($query) => $query->where('isactive', true))
+                                    ->getOptionLabelFromRecordUsing(fn($record) => "{$record->license_plate} - {$record->owner}")
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->label('Nomor Kendaraan')
+                                    ->placeholder('Pilih Nomor Kendaraan kendaraan')
+                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                        if ($state) {
+                                            $vehicle = \App\Models\Vehicle::with('vehicleType')->find($state);
+                                            if ($vehicle) {
+                                                $set('license_plate', $vehicle->license_plate);
+                                                $set('vehicle_type_id', $vehicle->vehicle_type_id);
+                                                $set('vehicle_type_name', $vehicle->vehicleType->name);
+                                                $set('owner', $vehicle->owner);
+                                                $set('vehicle_model_name', $vehicle->vehicle_model);
+                                                $set('brand_name', $vehicle->brand);
+                                                $set('detail_name', $vehicle->detail);
+                                                $set('ownership_type_name', $vehicle->ownership_type);
+                                            }
+                                        } else {
+                                            $set('license_plate', null);
+                                            $set('vehicle_type_id', null);
+                                            $set('vehicle_type_name', null);
+                                            $set('owner', null);
+                                            $set('vehicle_model_name', null);
+                                            $set('brand_name', null);
+                                            $set('detail_name', null);
+                                            $set('ownership_type_name', null);
+                                        }
+                                    }),
+                            ]),
 
-                        Forms\Components\TextInput::make('vehicle_type_name')
-                            ->label('Jenis Kendaraan')
-                            ->disabled()
-                            ->dehydrated(false),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Group::make([
+                                    Forms\Components\TextInput::make('vehicle_type_name')
+                                        ->label('Jenis Kendaraan')
+                                        ->disabled()
+                                        ->dehydrated(false),
+                                    Forms\Components\TextInput::make('owner')
+                                        ->label('Pemilik')
+                                        ->required()
+                                        ->dehydrated(true),
+                                ])->columnSpan(1),
+                                Forms\Components\Group::make([
+                                    Forms\Components\Grid::make(2)
+                                        ->schema([
+                                            Forms\Components\TextInput::make('brand_name')
+                                                ->label('Merk')
+                                                ->disabled()
+                                                ->dehydrated(false),
+                                            Forms\Components\TextInput::make('vehicle_model_name')
+                                                ->label('Model')
+                                                ->disabled()
+                                                ->dehydrated(false),
+                                        ]),
+                                    Forms\Components\TextInput::make('ownership_type_name')
+                                        ->label('Kepemilikan')
+                                        ->disabled()
+                                        ->dehydrated(false)
+                                        ->prefix(fn ($state) => $state === 'Inventaris' ? '🏢' : '👤'),
+                                ])->columnSpan(1),
+                            ]),
 
-                        Forms\Components\TextInput::make('owner')
-                            ->label('Pemilik')
-                            ->required()
-                            ->dehydrated(true), // Changed to true to ensure it's saved
+                        Forms\Components\Grid::make(1)
+                            ->schema([
+                                Forms\Components\TextInput::make('detail_name')
+                                    ->label('Detail Kendaraan')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->placeholder('-'),
+                            ]),
 
                         Forms\Components\Hidden::make('vehicle_type_id'),
                         Forms\Components\Hidden::make('license_plate'),
-                    ])->columns(2),
+                    ])->collapsible(),
 
                 Forms\Components\Section::make('Data Penggunaan BBM')
                     ->description('Informasi penggunaan bahan bakar')
@@ -324,9 +366,12 @@ class TransactionResource extends Resource
                     ->formatStateUsing(function ($record) {
                         $owner = $record->owner ?? '-';
                         $plate = $record->license_plate ?? '-';
+                        $model = $record->vehicle->vehicle_model ?? '-';
+                        $brand = $record->vehicle->brand ?? '-';
 
                         return "{$owner}<br>
-                                {$plate}";
+                                {$plate}<br>
+                                {$brand} - {$model}";
                     })
                     ->html()
                     ->searchable(['owner', 'license_plate'])

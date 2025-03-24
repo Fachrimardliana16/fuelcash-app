@@ -43,16 +43,6 @@ class VehicleTypeResource extends Resource
                                 'max' => 'Nama jenis kendaraan maksimal 255 karakter',
                                 'unique' => 'Nama jenis kendaraan sudah digunakan',
                             ]),
-                        Forms\Components\TextInput::make('max_deposit_balance')
-                            ->label('Maksimal Saldo Deposit')
-                            ->numeric()
-                            ->rules(['nullable', 'numeric', 'min:0'])
-                            ->prefix('Rp')
-                            ->validationMessages([
-                                'numeric' => 'Maksimal saldo deposit harus berupa angka',
-                                'min' => 'Maksimal saldo deposit tidak boleh negatif',
-                            ])
-                            ->helperText('Batasan maksimal saldo yang dapat didepositkan'),
                         Forms\Components\Textarea::make('desc')
                             ->label('Deskripsi')
                             ->rules(['nullable', 'string'])
@@ -76,10 +66,6 @@ class VehicleTypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Jenis Kendaraan')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('max_deposit_balance')
-                    ->label('Maksimal Saldo Deposit')
-                    ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('desc')
                     ->label('Deskripsi')

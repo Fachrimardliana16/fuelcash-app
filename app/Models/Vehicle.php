@@ -18,6 +18,10 @@ class Vehicle extends Model
         'license_plate',
         'owner',
         'vehicle_type_id',
+        'vehicle_model',
+        'brand',
+        'detail',
+        'ownership_type',
         'isactive',
         'created_at',
         'updated_at',
@@ -59,6 +63,10 @@ class Vehicle extends Model
             'license_plate' => 'required|string|max:20|unique:vehicles,license_plate',
             'owner' => 'required|string|max:255',
             'vehicle_type_id' => 'required|exists:vehicle_types,id',
+            'vehicle_model' => 'nullable|string|in:Pickup,Bebek,Matic,SUV,MPV,Sport',
+            'brand' => 'nullable|string|in:Honda,Toyota,Nissan,Suzuki,Yamaha,Kawasaki,Mitsubishi,Daihatsu,Other',
+            'detail' => 'nullable|string|max:255',
+            'ownership_type' => 'required|string|in:Inventaris,Pribadi',
             'isactive' => 'boolean'
         ];
     }
