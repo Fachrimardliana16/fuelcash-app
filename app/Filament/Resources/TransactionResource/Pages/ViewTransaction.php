@@ -182,26 +182,32 @@ class ViewTransaction extends ViewRecord
                         Components\TextEntry::make('usage_description')
                             ->label('Keterangan Penggunaan')
                             ->columnSpanFull(),
-                        Components\ImageEntry::make('fuel_receipt')
-                            ->label('Struk BBM')
-                            ->columnSpanFull()
-                            ->height(300)
-                            ->width(300)
-                            ->extraImgAttributes([
-                                'class' => 'object-contain max-w-full',
-                                'style' => 'margin: 0 auto;'
+                        Components\Grid::make(2)
+                            ->schema([
+                                Components\ImageEntry::make('fuel_receipt')
+                                    ->label('Struk BBM')
+                                    ->height('auto')
+                                    ->width('100%')
+                                    ->extraImgAttributes([
+                                        'class' => 'object-contain w-full max-w-md max-h-[400px] rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300',
+                                        'style' => 'margin: 0 auto; display: block;'
+                                    ])
+                                    ->visible(fn($record) => !empty($record->fuel_receipt)),
+                                Components\ImageEntry::make('invoice')
+                                    ->label('Form Permintaan')
+                                    ->height('auto')
+                                    ->width('100%')
+                                    ->extraImgAttributes([
+                                        'class' => 'object-contain w-full max-w-md max-h-[400px] rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300',
+                                        'style' => 'margin: 0 auto; display: block;'
+                                    ])
+                                    ->visible(fn($record) => !empty($record->invoice)),
                             ])
-                            ->visible(fn($record) => !empty($record->fuel_receipt)),
-                        Components\ImageEntry::make('invoice')
-                            ->label('Form Permintaan')
-                            ->columnSpanFull()
-                            ->height(300)
-                            ->width(300)
-                            ->extraImgAttributes([
-                                'class' => 'object-contain max-w-full',
-                                'style' => 'margin: 0 auto;'
-                            ])
-                            ->visible(fn($record) => !empty($record->invoice)),
+                            ->columnSpan('full')
+                            ->columns(2)
+                            ->extraAttributes([
+                                'class' => 'gap-4'
+                            ]),
                     ]),
 
                 Components\Section::make('Informasi Configuration App')

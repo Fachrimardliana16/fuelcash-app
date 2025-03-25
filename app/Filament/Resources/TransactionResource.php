@@ -421,10 +421,21 @@ class TransactionResource extends Resource
                             ->optimize('jpg')
                             ->label('Struk BBM')
                             ->columnSpanFull()
+                            ->uploadButtonPosition('left')
+                            ->removeUploadedFileButtonPosition('right')
+                            ->uploadProgressIndicatorPosition('left')
+                            ->panelLayout('integrated')
+                            ->extraAttributes([
+                                'accept' => 'image/*',
+                                'capture' => 'environment'
+                            ])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
                                 'max' => 'Ukuran file maksimal 10MB',
-                            ]),
+                            ])
+                            ->helperText(fn () => new \Illuminate\Support\HtmlString(
+                                '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
+                            )),
 
                         FileUpload::make('invoice')
                             ->image()
@@ -449,10 +460,21 @@ class TransactionResource extends Resource
                             ->optimize('jpg')
                             ->label('Form Permintaan BBM')
                             ->columnSpanFull()
+                            ->uploadButtonPosition('left')
+                            ->removeUploadedFileButtonPosition('right')
+                            ->uploadProgressIndicatorPosition('left')
+                            ->panelLayout('integrated')
+                            ->extraAttributes([
+                                'accept' => 'image/*',
+                                'capture' => 'environment'
+                            ])
                             ->validationMessages([
                                 'image' => 'File harus berupa gambar',
                                 'max' => 'Ukuran file maksimal 10MB',
-                            ]),
+                            ])
+                            ->helperText(fn () => new \Illuminate\Support\HtmlString(
+                                '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
+                            )),
 
                         Forms\Components\Select::make('balance_id')
                             ->relationship('balance', 'id')
