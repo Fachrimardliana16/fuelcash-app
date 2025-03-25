@@ -55,6 +55,126 @@ class TransactionResource extends Resource
                                     ->live()
                                     ->label('Nomor Kendaraan')
                                     ->placeholder('Pilih Nomor Kendaraan kendaraan')
+                                    ->createOptionForm([
+                                        Forms\Components\Section::make('Informasi Kendaraan')
+                                            ->description('Masukkan informasi detail kendaraan')
+                                            ->schema([
+                                                Forms\Components\Select::make('vehicle_type_id')
+                                                    ->relationship('vehicleType', 'name')
+                                                    ->label('Jenis Kendaraan')
+                                                    ->required()
+                                                    ->live()
+                                                    ->validationMessages([
+                                                        'required' => 'Jenis kendaraan harus dipilih',
+                                                        'exists' => 'Jenis kendaraan tidak valid',
+                                                    ])
+                                                    ->rules(['required', 'exists:vehicle_types,id']),
+
+                                                Forms\Components\TextInput::make('license_plate')
+                                                    ->label('Nomor Kendaraan')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->unique(ignoreRecord: true)
+                                                    ->regex('/^[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{1,3}$/')
+                                                    ->validationMessages([
+                                                        'required' => 'Nomor Kendaraan harus diisi',
+                                                        'regex' => 'Format Nomor Kendaraan tidak valid (Contoh: B 1234 ABC)',
+                                                        'unique' => 'Nomor Kendaraan sudah terdaftar',
+                                                        'max' => 'Nomor Kendaraan maksimal 255 karakter',
+                                                    ])
+                                                    ->rules(['required', 'max:255', 'unique:vehicles,license_plate']),
+
+                                                Forms\Components\Select::make('vehicle_model')
+                                                    ->label('Tipe Kendaraan')
+                                                    ->options([
+                                                        'Pickup' => 'Pickup',
+                                                        'Bebek' => 'Bebek',
+                                                        'Matic' => 'Matic',
+                                                        'SUV' => 'SUV',
+                                                        'MPV' => 'MPV',
+                                                        'Sport' => 'Sport',
+                                                    ])
+                                                    ->required()
+                                                    ->validationMessages([
+                                                        'required' => 'Tipe kendaraan harus dipilih',
+                                                        'in' => 'Tipe kendaraan tidak valid',
+                                                    ])
+                                                    ->rules(['required', 'in:Pickup,Bebek,Matic,SUV,MPV,Sport']),
+
+                                                Forms\Components\Select::make('brand')
+                                                    ->label('Merk')
+                                                    ->options([
+                                                        'Honda' => 'Honda',
+                                                        'Toyota' => 'Toyota',
+                                                        'Nissan' => 'Nissan',
+                                                        'Suzuki' => 'Suzuki',
+                                                        'Yamaha' => 'Yamaha',
+                                                        'Kawasaki' => 'Kawasaki',
+                                                        'Mitsubishi' => 'Mitsubishi',
+                                                        'Daihatsu' => 'Daihatsu',
+                                                        'Other' => 'Lainnya',
+                                                    ])
+                                                    ->required()
+                                                    ->validationMessages([
+                                                        'required' => 'Merk kendaraan harus dipilih',
+                                                        'in' => 'Merk kendaraan tidak valid',
+                                                    ])
+                                                    ->rules(['required', 'in:Honda,Toyota,Nissan,Suzuki,Yamaha,Kawasaki,Mitsubishi,Daihatsu,Other']),
+
+                                                Forms\Components\TextInput::make('detail')
+                                                    ->label('Detail Kendaraan')
+                                                    ->placeholder('Contoh: Isuzu Panther Touring, Toyota Kijang Innova V 2.4 atau lainnya')
+                                                    ->helperText('Masukkan detail spesifik kendaraan seperti tipe dan varian')
+                                                    ->maxLength(255)
+                                                    ->validationMessages([
+                                                        'max' => 'Detail kendaraan maksimal 255 karakter',
+                                                    ])
+                                                    ->rules(['nullable', 'max:255', 'string'])
+                                                    ->columnSpanFull(),
+
+                                            ])->columns(2),
+
+                                        Forms\Components\Section::make('Data Kepemilikan')
+                                            ->schema([
+                                                Forms\Components\TextInput::make('owner')
+                                                    ->label('Pemilik')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->validationMessages([
+                                                        'required' => 'Nama pemilik harus diisi',
+                                                        'max' => 'Nama pemilik maksimal 255 karakter',
+                                                        'string' => 'Nama pemilik harus berupa teks',
+                                                    ])
+                                                    ->rules(['required', 'string', 'max:255']),
+
+                                                Forms\Components\Select::make('ownership_type')
+                                                    ->label('Jenis Kepemilikan')
+                                                    ->options([
+                                                        'Inventaris' => 'Inventaris',
+                                                        'Pribadi' => 'Pribadi',
+                                                    ])
+                                                    ->required()
+                                                    ->default('Inventaris')
+                                                    ->validationMessages([
+                                                        'required' => 'Jenis kepemilikan harus dipilih',
+                                                        'in' => 'Jenis kepemilikan tidak valid',
+                                                    ])
+                                                    ->rules(['required', 'in:Inventaris,Pribadi']),
+
+                                                Forms\Components\Toggle::make('isactive')
+                                                    ->label('Status Aktif')
+                                                    ->required()
+                                                    ->inline(false)
+                                                    ->onColor('success')
+                                                    ->offColor('danger')
+                                                    ->default(true)
+                                                    ->validationMessages([
+                                                        'required' => 'Status aktif harus dipilih',
+                                                        'boolean' => 'Status aktif tidak valid',
+                                                    ])
+                                                    ->rules(['required', 'boolean']),
+                                            ])->columns(2),
+                                    ])
                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                                         if ($state) {
                                             $vehicle = \App\Models\Vehicle::with('vehicleType')->find($state);
@@ -799,7 +919,7 @@ class TransactionResource extends Resource
             'index' => Pages\ListTransactions::route('/'),
             'create' => Pages\CreateTransaction::route('/create'),
             'view' => Pages\ViewTransaction::route('/{record}'),
-            'edit' => Pages\EditTransaction::route('/{record}/edit'),
+            'edit' => Pages\EditTransaction::route('/{record}/edit'), // Add comma here
         ];
     }
 }
