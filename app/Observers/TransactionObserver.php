@@ -58,4 +58,23 @@ class TransactionObserver
             broadcast(new \App\Events\TransactionCreated())->toOthers();
         });
     }
+
+    public function deleting(Transaction $transaction)
+    {
+        DB::transaction(function () use ($transaction) {
+            // Restore balance
+            $balance = Balance::find($transaction->balance_id);
+            if ($balance) {
+                $newBalance = $balance->remaining_balance + $transaction->amount;
+                $balance->remaining_balance = $newBalance;
+                $balance->save();
+            }
+
+            // Set transaction_number to null
+            $transaction->forceFill(['transaction_number' => null])->save();
+
+            // Trigger widget refresh
+            broadcast(new \App\Events\TransactionCreated())->toOthers();
+        });
+    }
 }

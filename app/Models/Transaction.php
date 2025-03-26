@@ -71,37 +71,36 @@ class Transaction extends Model
         parent::boot();
 
         static::creating(function ($transaction) {
-            $transaction->transaction_number = static::generateTransactionNumber($transaction->usage_date);
+            // Use current timestamp instead of usage_date
+            $now = Carbon::now();
+            $transaction->transaction_number = static::generateTransactionNumber($now);
         });
     }
 
-    protected static function generateTransactionNumber($usage_date)
+    protected static function generateTransactionNumber($date)
     {
-        // Convert usage_date string to Carbon instance if it isn't already
-        $date = $usage_date instanceof Carbon ? $usage_date : Carbon::parse($usage_date);
-
         $month = $date->month;
         $year = $date->year;
 
-        // Get the last transaction number for the specific month and year
-        $lastTransaction = static::whereYear('usage_date', $year)
-            ->whereMonth('usage_date', $month)
-            ->latest()
-            ->first();
+        // Get all used transaction numbers for the current month/year (including soft deleted)
+        $usedNumbers = static::withTrashed()
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->whereNotNull('transaction_number')
+            ->pluck('transaction_number')
+            ->toArray();
 
-        // Get the sequence number
-        if (!$lastTransaction) {
-            $sequenceNumber = 1;
-        } else {
-            $lastNumber = (int) substr($lastTransaction->transaction_number, 0, 3);
-            $sequenceNumber = $lastNumber + 1;
-        }
-
-        // Convert month to roman numerals
+        // Find the first available number
+        $sequenceNumber = 1;
         $romanMonth = static::numberToRoman($month);
 
-        // Format: 001/KRT-BBM/XII/2024
-        return sprintf("%03d/KRT-BBM/%s/%d", $sequenceNumber, $romanMonth, $year);
+        while (true) {
+            $proposedNumber = sprintf("%03d/KRT-BBM/%s/%d", $sequenceNumber, $romanMonth, $year);
+            if (!in_array($proposedNumber, $usedNumbers)) {
+                return $proposedNumber;
+            }
+            $sequenceNumber++;
+        }
     }
 
     protected static function numberToRoman($number)
