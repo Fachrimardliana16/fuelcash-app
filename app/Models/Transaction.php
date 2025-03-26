@@ -71,10 +71,16 @@ class Transaction extends Model
         parent::boot();
 
         static::creating(function ($transaction) {
-            // Use current timestamp instead of usage_date
             $now = Carbon::now();
             $transaction->transaction_number = static::generateTransactionNumber($now);
         });
+
+        // Hapus event listener yang memaksa force delete
+        // static::deleted(function ($transaction) {
+        //     if (!$transaction->isForceDeleting()) {
+        //         $transaction->forceDelete();
+        //     }
+        // });
     }
 
     protected static function generateTransactionNumber($date)
