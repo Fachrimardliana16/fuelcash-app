@@ -19,6 +19,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationItem;
+use Filament\FontProviders\GoogleFontProvider;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -29,10 +30,43 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->sidebarCollapsibleOnDesktop() // Add this line
+            ->sidebarCollapsibleOnDesktop()
+            ->favicon(asset('storage/favicon/icon1.ico'))
+            ->brandName('Tirta Perwira')
+            //->brandLogo(asset('storage/favicon/icon.ico'))
+            ->darkMode(true)
+            ->font('Poppins', provider: GoogleFontProvider::class)
             ->colors([
-                'primary' => Color::Amber,
+                'danger' => Color::Red,
+                'gray' => Color::Slate,
+                'info' => Color::Sky,
+                'primary' => Color::Emerald,
+                'success' => Color::Teal,
+                'warning' => Color::Amber,
             ])
+            ->navigationGroups([
+                'Operations',
+                'Finance',
+                'Vehicles & Fuel',
+                'User Management',
+                'System',
+            ])
+            ->navigationItems([
+                NavigationItem::make('Dashboard')
+                    ->icon('heroicon-o-home')
+                    ->isActiveWhen(fn(): bool => request()->routeIs('filament.admin.pages.dashboard'))
+                    ->url(fn(): string => Pages\Dashboard::getUrl()),
+                NavigationItem::make('Buku Petunjuk')
+                    ->icon('heroicon-o-book-open')
+                    ->url('https://docs.google.com/document/d/1n7amiLpSnTVTaP7xKra06lxuRgPnKrifU0bWs92z0Ew/edit?usp=sharing', shouldOpenInNewTab: true),
+                NavigationItem::make('Doc Dev')
+                    ->icon('heroicon-o-code-bracket-square')
+                    ->url('https://docs.google.com/document/d/1n7amiLpSnTVTaP7xKra06lxuRgPnKrifU0bWs92z0Ew/edit?usp=sharing', shouldOpenInNewTab: true)
+                    ->visible(fn() => auth()->user()->hasRole('super_admin')),
+            ])
+            ->maxContentWidth('full')
+            ->breadcrumbs()
+            ->collapsibleNavigationGroups()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
