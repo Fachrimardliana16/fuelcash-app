@@ -41,13 +41,93 @@ class TransactionResource extends Resource
                 Forms\Components\Hidden::make('user_id')
                     ->default(fn() => Auth::id()),
 
+                Forms\Components\Section::make('Informasi Transaksi')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\DatePicker::make('usage_date')
+                                    ->required()
+                                    ->default(now())
+                                    ->label('Tanggal Penggunaan')
+                                    ->placeholder('Pilih tanggal')
+                                    ->rules(['required', 'date'])
+                                    ->validationMessages([
+                                        'required' => 'Tanggal penggunaan wajib diisi',
+                                        'date' => 'Format tanggal tidak valid',
+                                    ]),
+
+                                Forms\Components\Select::make('fuel_type_id')
+                                    ->relationship('fuelType', 'name', fn($query) => $query->where('isactive', true))
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->label('Jenis BBM')
+                                    ->placeholder('Pilih jenis BBM')
+                                    ->rules(['required'])
+                                    ->validationMessages([
+                                        'required' => 'Jenis BBM wajib dipilih',
+                                    ]),
+
+                                Forms\Components\Select::make('fuel_id')
+                                    ->options(function (Forms\Get $get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) return [];
+                                        return \App\Models\Fuel::where('fuel_type_id', $fuelTypeId)
+                                            ->where('isactive', true)
+                                            ->pluck('name', 'id');
+                                    })
+                                    ->required()
+                                    ->searchable()
+                                    ->label('BBM')
+                                    ->placeholder('Pilih BBM')
+                                    ->disabled(fn(Forms\Get $get) => !$get('fuel_type_id'))
+                                    ->rules(['required'])
+                                    ->validationMessages([
+                                        'required' => 'BBM wajib dipilih',
+                                    ]),
+
+                                Forms\Components\Placeholder::make('available_balance')
+                                    ->label('Saldo Tersedia')
+                                    ->content(function (Forms\Get $get) {
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if (!$fuelTypeId) {
+                                            return "Pilih jenis BBM terlebih dahulu";
+                                        }
+
+                                        $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                            ->latest()
+                                            ->first();
+
+                                        $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+                                        return "Rp " . number_format($availableBalance, 0, ',', '.');
+                                    }),
+                            ]),
+                    ]),
+
                 Forms\Components\Section::make('Data Kendaraan')
-                    ->description('Informasi kendaraan yang digunakan')
                     ->schema([
                         Forms\Components\Grid::make(1)
                             ->schema([
                                 Forms\Components\Select::make('vehicles_id')
-                                    ->relationship('vehicle', 'license_plate', fn($query) => $query->where('isactive', true))
+                                    ->relationship(
+                                        'vehicle',
+                                        'license_plate',
+                                        function ($query, Forms\Get $get) {
+                                            $fuelTypeId = $get('fuel_type_id');
+
+                                            $query = $query->where('isactive', true);
+
+                                            if ($fuelTypeId) {
+                                                $query->where(function ($query) use ($fuelTypeId) {
+                                                    $query->where('fuel_type_id', $fuelTypeId)
+                                                        ->orWhereNull('fuel_type_id');
+                                                });
+                                            }
+
+                                            return $query;
+                                        }
+                                    )
                                     ->getOptionLabelFromRecordUsing(fn($record) => "{$record->license_plate} - {$record->owner}")
                                     ->required()
                                     ->searchable()
@@ -55,6 +135,8 @@ class TransactionResource extends Resource
                                     ->live()
                                     ->label('Nomor Kendaraan')
                                     ->placeholder('Pilih Nomor Kendaraan kendaraan')
+                                    ->disabled(fn(Forms\Get $get) => !$get('fuel_type_id'))
+                                    ->helperText(fn(Forms\Get $get) => !$get('fuel_type_id') ? 'Pilih jenis BBM terlebih dahulu' : null)
                                     ->createOptionForm([
                                         Forms\Components\Section::make('Informasi Kendaraan')
                                             ->description('Masukkan informasi detail kendaraan')
@@ -175,7 +257,7 @@ class TransactionResource extends Resource
                                                     ->rules(['required', 'boolean']),
                                             ])->columns(2),
                                     ])
-                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                                         if ($state) {
                                             $vehicle = \App\Models\Vehicle::with('vehicleType')->find($state);
                                             if ($vehicle) {
@@ -203,288 +285,220 @@ class TransactionResource extends Resource
 
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Group::make([
-                                    Forms\Components\TextInput::make('vehicle_type_name')
-                                        ->label('Jenis Kendaraan')
-                                        ->disabled()
-                                        ->dehydrated(false),
-                                    Forms\Components\TextInput::make('owner')
-                                        ->label('Pemilik')
-                                        ->required()
-                                        ->dehydrated(true),
-                                ])->columnSpan(1),
-                                Forms\Components\Group::make([
-                                    Forms\Components\Grid::make(2)
-                                        ->schema([
-                                            Forms\Components\TextInput::make('brand_name')
-                                                ->label('Merk')
-                                                ->disabled()
-                                                ->dehydrated(false),
-                                            Forms\Components\TextInput::make('vehicle_model_name')
-                                                ->label('Model')
-                                                ->disabled()
-                                                ->dehydrated(false),
-                                        ]),
-                                    Forms\Components\TextInput::make('ownership_type_name')
-                                        ->label('Kepemilikan')
-                                        ->disabled()
-                                        ->dehydrated(false)
-                                        ->prefix(fn ($state) => $state === 'Inventaris' ? '🏢' : '👤'),
-                                ])->columnSpan(1),
-                            ]),
-
-                        Forms\Components\Grid::make(1)
-                            ->schema([
-                                Forms\Components\TextInput::make('detail_name')
-                                    ->label('Detail Kendaraan')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->placeholder('-'),
+                                Forms\Components\Card::make()
+                                    ->schema([
+                                        Forms\Components\TextInput::make('vehicle_type_name')
+                                            ->label('Jenis Kendaraan')
+                                            ->disabled()
+                                            ->dehydrated(false),
+                                        Forms\Components\TextInput::make('owner')
+                                            ->label('Pemilik')
+                                            ->disabled()
+                                            ->dehydrated(true),
+                                        Forms\Components\TextInput::make('brand_name')
+                                            ->label('Merk')
+                                            ->disabled()
+                                            ->dehydrated(false),
+                                        Forms\Components\TextInput::make('vehicle_model_name')
+                                            ->label('Model')
+                                            ->disabled()
+                                            ->dehydrated(false),
+                                        Forms\Components\TextInput::make('ownership_type_name')
+                                            ->label('Kepemilikan')
+                                            ->disabled()
+                                            ->dehydrated(false)
+                                            ->prefix(fn($state) => $state === 'Inventaris' ? '🏢' : '👤'),
+                                        Forms\Components\TextInput::make('detail_name')
+                                            ->label('Detail Kendaraan')
+                                            ->disabled()
+                                            ->dehydrated(false)
+                                            ->placeholder('-'),
+                                    ]),
                             ]),
 
                         Forms\Components\Hidden::make('vehicle_type_id'),
                         Forms\Components\Hidden::make('license_plate'),
-                    ])->collapsible(),
-
-                Forms\Components\Section::make('Data Penggunaan BBM')
-                    ->description('Informasi penggunaan bahan bakar')
-                    ->schema([
-                        Forms\Components\DatePicker::make('usage_date')
-                            ->required()
-                            ->default(now())
-                            ->label('Tanggal Penggunaan')
-                            ->placeholder('Pilih tanggal')
-                            ->rules(['required', 'date'])
-                            ->validationMessages([
-                                'required' => 'Tanggal penggunaan wajib diisi',
-                                'date' => 'Format tanggal tidak valid',
-                            ]),
-
-                        Forms\Components\Select::make('fuel_type_id')
-                            ->relationship('fuelType', 'name', fn($query) => $query->where('isactive', true))
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->label('Jenis BBM')
-                            ->placeholder('Pilih jenis BBM')
-                            ->rules(['required'])
-                            ->validationMessages([
-                                'required' => 'Jenis BBM wajib dipilih',
-                            ]),
-
-                        Forms\Components\Select::make('fuel_id')
-                            ->options(function (Forms\Get $get) {
-                                $fuelTypeId = $get('fuel_type_id');
-                                if (!$fuelTypeId) return [];
-                                return \App\Models\Fuel::where('fuel_type_id', $fuelTypeId)
-                                    ->where('isactive', true)
-                                    ->pluck('name', 'id');
-                            })
-                            ->required()
-                            ->searchable()
-                            ->label('BBM')
-                            ->placeholder('Pilih BBM')
-                            ->disabled(fn(Forms\Get $get) => !$get('fuel_type_id'))
-                            ->rules(['required'])
-                            ->validationMessages([
-                                'required' => 'BBM wajib dipilih',
-                            ]),
-
-                        Forms\Components\Placeholder::make('available_balance')
-                            ->label('Saldo Tersedia')
-                            ->content(function (Forms\Get $get) {
-                                $fuelTypeId = $get('fuel_type_id');
-                                if (!$fuelTypeId) {
-                                    return "Pilih jenis BBM terlebih dahulu";
-                                }
-
-                                $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
-                                    ->latest()
-                                    ->first();
-
-                                $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-                                return "Rp " . number_format($availableBalance, 0, ',', '.');
-                            }),
-
-                        Forms\Components\TextInput::make('amount')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->label('Jumlah')
-                            ->placeholder('Masukkan jumlah')
-                            ->mask('999999999')
-                            ->live(onBlur: true, debounce: 500) // Corrected live implementation with both onBlur and debounce
-                            ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                                $fuelId = $get('fuel_id');
-                                if ($fuelId && $state) {
-                                    $fuel = \App\Models\Fuel::find($fuelId);
-                                    if ($fuel && $fuel->price > 0) {
-                                        $volume = $state / $fuel->price;
-                                        $set('volume', number_format($volume, 2));
-                                    }
-                                }
-
-                                // Add validation for balance
-                                $fuelTypeId = $get('fuel_type_id');
-                                if ($fuelTypeId && $state) {
-                                    $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
-                                        ->latest()
-                                        ->first();
-
-                                    $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-
-                                    if ($state > $availableBalance) {
-                                        $set('balance_warning', "Jumlah melebihi saldo tersedia (Rp " . number_format($availableBalance, 0, ',', '.') . ")");
-                                    } else {
-                                        $set('balance_warning', null);
-                                    }
-                                }
-                            })
-                            ->rules([
-                                'required',
-                                'numeric',
-                                'min:1',
-                                function (Forms\Get $get) {
-                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
-                                        $fuelTypeId = $get('fuel_type_id');
-                                        if (!$fuelTypeId) return;
-
-                                        $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
-                                            ->latest()
-                                            ->first();
-
-                                        $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
-
-                                        if ($value > $availableBalance) {
-                                            $fail("Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($availableBalance, 0, ',', '.'));
-                                        }
-                                    };
-                                }
-                            ])
-                            ->validationMessages([
-                                'required' => 'Jumlah wajib diisi',
-                                'numeric' => 'Jumlah harus berupa angka',
-                                'min' => 'Jumlah minimal 1',
-                            ]),
-
-                        Forms\Components\Placeholder::make('balance_warning')
-                            ->label('')
-                            ->content(fn(Forms\Get $get) => $get('balance_warning'))
-                            ->extraAttributes([
-                                'class' => 'text-danger-500 font-medium',
-                            ])
-                            ->visible(fn(Forms\Get $get) => $get('balance_warning')),
-
-                        Forms\Components\TextInput::make('volume')
-                            ->label('Volume BBM')
-                            ->suffix('Liter')
-                            ->disabled()
-                            ->dehydrated(true),
-
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Keterangan & Dokumen')
-                    ->description('Informasi tambahan dan dokumen pendukung')
-                    ->schema([
-                        Forms\Components\Textarea::make('usage_description')
-                            ->required()
-                            ->label('Keterangan Penggunaan')
-                            ->placeholder('Masukkan keterangan penggunaan BBM')
-                            ->rules(['required', 'min:10'])
-                            ->validationMessages([
-                                'required' => 'Keterangan wajib diisi',
-                                'min' => 'Keterangan minimal 10 karakter',
-                            ])
-                            ->columnSpanFull(),
-
-                        FileUpload::make('fuel_receipt')
-                            ->image()
-                            ->imageEditor()
-                            ->imageEditorAspectRatios([
-                                null,
-                                '16:9',
-                                '4:3',
-                                '1:1',
-                            ])
-                            ->imageEditorViewportWidth('1920')
-                            ->imageEditorViewportHeight('1080')
-                            ->acceptedFileTypes([
-                                'image/jpeg',
-                                'image/png',
-                                'image/jpg',
-                                'image/heic',
-                                'image/heif'
-                            ])
-                            ->maxSize(10240)
-                            ->directory('fuel-receipts')
-                            ->optimize('jpg')
-                            ->label('Struk BBM')
-                            ->columnSpanFull()
-                            ->uploadButtonPosition('left')
-                            ->removeUploadedFileButtonPosition('right')
-                            ->uploadProgressIndicatorPosition('left')
-                            ->panelLayout('integrated')
-                            ->extraAttributes([
-                                'accept' => 'image/*',
-                                'capture' => 'environment'
-                            ])
-                            ->validationMessages([
-                                'image' => 'File harus berupa gambar',
-                                'max' => 'Ukuran file maksimal 10MB',
-                            ])
-                            ->helperText(fn () => new \Illuminate\Support\HtmlString(
-                                '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
-                            )),
-
-                        FileUpload::make('invoice')
-                            ->image()
-                            ->imageEditor()
-                            ->imageEditorAspectRatios([
-                                null,
-                                '16:9',
-                                '4:3',
-                                '1:1',
-                            ])
-                            ->imageEditorViewportWidth('1920')
-                            ->imageEditorViewportHeight('1080')
-                            ->acceptedFileTypes([
-                                'image/jpeg',
-                                'image/png',
-                                'image/jpg',
-                                'image.heic',
-                                'image.heif'
-                            ])
-                            ->maxSize(10240)
-                            ->directory('invoices')
-                            ->optimize('jpg')
-                            ->label('Form Permintaan BBM')
-                            ->columnSpanFull()
-                            ->uploadButtonPosition('left')
-                            ->removeUploadedFileButtonPosition('right')
-                            ->uploadProgressIndicatorPosition('left')
-                            ->panelLayout('integrated')
-                            ->extraAttributes([
-                                'accept' => 'image/*',
-                                'capture' => 'environment'
-                            ])
-                            ->validationMessages([
-                                'image' => 'File harus berupa gambar',
-                                'max' => 'Ukuran file maksimal 10MB',
-                            ])
-                            ->helperText(fn () => new \Illuminate\Support\HtmlString(
-                                '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
-                            )),
-
-                        Forms\Components\Select::make('balance_id')
-                            ->relationship('balance', 'id')
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->default(fn() => Balance::latest()->first()?->id)
-                            ->label('Saldo')
-                            ->hidden(),
                     ]),
+
+                Forms\Components\Section::make('Informasi Pengisian & Keterangan')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('amount')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('Rp')
+                                    ->label('Jumlah')
+                                    ->placeholder('Masukkan jumlah')
+                                    ->mask('999999999')
+                                    ->live(onBlur: true, debounce: 500)
+                                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                                        $fuelId = $get('fuel_id');
+                                        if ($fuelId && $state) {
+                                            $fuel = \App\Models\Fuel::find($fuelId);
+                                            if ($fuel && $fuel->price > 0) {
+                                                $volume = $state / $fuel->price;
+                                                $set('volume', number_format($volume, 2));
+                                            }
+                                        }
+
+                                        // Add validation for balance
+                                        $fuelTypeId = $get('fuel_type_id');
+                                        if ($fuelTypeId && $state) {
+                                            $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                                ->latest()
+                                                ->first();
+
+                                            $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+
+                                            if ($state > $availableBalance) {
+                                                $set('balance_warning', "Jumlah melebihi saldo tersedia (Rp " . number_format($availableBalance, 0, ',', '.') . ")");
+                                            } else {
+                                                $set('balance_warning', null);
+                                            }
+                                        }
+                                    })
+                                    ->rules([
+                                        'required',
+                                        'numeric',
+                                        'min:1',
+                                        function (Forms\Get $get) {
+                                            return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                $fuelTypeId = $get('fuel_type_id');
+                                                if (!$fuelTypeId) return;
+
+                                                $latestBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                                    ->latest()
+                                                    ->first();
+
+                                                $availableBalance = $latestBalance ? $latestBalance->remaining_balance : 0;
+
+                                                if ($value > $availableBalance) {
+                                                    $fail("Saldo tidak mencukupi. Saldo tersedia: Rp " . number_format($availableBalance, 0, ',', '.'));
+                                                }
+                                            };
+                                        }
+                                    ])
+                                    ->validationMessages([
+                                        'required' => 'Jumlah wajib diisi',
+                                        'numeric' => 'Jumlah harus berupa angka',
+                                        'min' => 'Jumlah minimal 1',
+                                    ]),
+
+                                Forms\Components\TextInput::make('volume')
+                                    ->label('Volume BBM')
+                                    ->suffix('Liter')
+                                    ->disabled()
+                                    ->dehydrated(true),
+
+                                Forms\Components\Placeholder::make('balance_warning')
+                                    ->label('')
+                                    ->content(fn(Forms\Get $get) => $get('balance_warning'))
+                                    ->extraAttributes([
+                                        'class' => 'text-danger-500 font-medium',
+                                    ])
+                                    ->visible(fn(Forms\Get $get) => $get('balance_warning'))
+                                    ->columnSpan(2),
+
+                                Forms\Components\Textarea::make('usage_description')
+                                    ->required()
+                                    ->label('Keterangan Penggunaan')
+                                    ->placeholder('Masukkan keterangan penggunaan BBM')
+                                    ->rules(['required', 'min:10'])
+                                    ->validationMessages([
+                                        'required' => 'Keterangan wajib diisi',
+                                        'min' => 'Keterangan minimal 10 karakter',
+                                    ])
+                                    ->columnSpan(2),
+                            ]),
+                    ]),
+
+                Forms\Components\Section::make('Dokumen')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                FileUpload::make('fuel_receipt')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->imageEditorAspectRatios([
+                                        null,
+                                        '16:9',
+                                        '4:3',
+                                        '1:1',
+                                    ])
+                                    ->imageEditorViewportWidth('1920')
+                                    ->imageEditorViewportHeight('1080')
+                                    ->acceptedFileTypes([
+                                        'image/jpeg',
+                                        'image/png',
+                                        'image/jpg',
+                                        'image/heic',
+                                        'image.heif'
+                                    ])
+                                    ->maxSize(10240)
+                                    ->directory('fuel-receipts')
+                                    ->optimize('jpg')
+                                    ->label('Struk BBM')
+                                    ->uploadButtonPosition('left')
+                                    ->removeUploadedFileButtonPosition('right')
+                                    ->uploadProgressIndicatorPosition('left')
+                                    ->panelLayout('integrated')
+                                    ->extraAttributes([
+                                        'accept' => 'image/*',
+                                        'capture' => 'environment'
+                                    ])
+                                    ->validationMessages([
+                                        'image' => 'File harus berupa gambar',
+                                        'max' => 'Ukuran file maksimal 10MB',
+                                    ])
+                                    ->helperText(fn() => new \Illuminate\Support\HtmlString(
+                                        '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
+                                    )),
+
+                                FileUpload::make('invoice')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->imageEditorAspectRatios([
+                                        null,
+                                        '16:9',
+                                        '4:3',
+                                        '1:1',
+                                    ])
+                                    ->imageEditorViewportWidth('1920')
+                                    ->imageEditorViewportHeight('1080')
+                                    ->acceptedFileTypes([
+                                        'image/jpeg',
+                                        'image/png',
+                                        'image/jpg',
+                                        'image.heic',
+                                        'image.heif'
+                                    ])
+                                    ->maxSize(10240)
+                                    ->directory('invoices')
+                                    ->optimize('jpg')
+                                    ->label('Form Permintaan BBM')
+                                    ->uploadButtonPosition('left')
+                                    ->removeUploadedFileButtonPosition('right')
+                                    ->uploadProgressIndicatorPosition('left')
+                                    ->panelLayout('integrated')
+                                    ->extraAttributes([
+                                        'accept' => 'image/*',
+                                        'capture' => 'environment'
+                                    ])
+                                    ->validationMessages([
+                                        'image' => 'File harus berupa gambar',
+                                        'max' => 'Ukuran file maksimal 10MB',
+                                    ])
+                                    ->helperText(fn() => new \Illuminate\Support\HtmlString(
+                                        '<div class="mt-1">' . view('components.filament.camera-capture')->render() . '</div>'
+                                    )),
+                            ]),
+                    ]),
+
+                Forms\Components\Hidden::make('balance_id')
+                    ->default(function () {
+                        return Balance::latest()->first()?->id ?? null;
+                    }),
             ]);
     }
 
@@ -627,9 +641,9 @@ class TransactionResource extends Resource
                             ->relationship(
                                 'vehicle',
                                 'license_plate',
-                                fn ($query) => $query->select(['id', 'license_plate', 'owner'])
+                                fn($query) => $query->select(['id', 'license_plate', 'owner'])
                             )
-                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->license_plate} - {$record->owner}")
+                            ->getOptionLabelFromRecordUsing(fn($record) => "{$record->license_plate} - {$record->owner}")
                             ->placeholder('Semua Nomor Kendaraan')
                             ->searchable()
                             ->preload(),
@@ -679,7 +693,7 @@ class TransactionResource extends Resource
                         }
 
                         $dateRange = Carbon::parse($data['start_date'])->format('d/m/Y') . ' - ' .
-                                   Carbon::parse($data['end_date'])->format('d/m/Y');
+                            Carbon::parse($data['end_date'])->format('d/m/Y');
 
                         $company = CompanySetting::first();
 
@@ -724,7 +738,7 @@ class TransactionResource extends Resource
                         ]);
 
                         return response()->streamDownload(
-                            fn () => print($pdf->output()),
+                            fn() => print($pdf->output()),
                             'laporan-transaksi-' . now()->format('Y-m-d') . '.pdf'
                         );
                     }),
@@ -829,7 +843,7 @@ class TransactionResource extends Resource
                             }
 
                             // Sort combined transactions by date
-                            usort($fuelTransactions, function($a, $b) {
+                            usort($fuelTransactions, function ($a, $b) {
                                 return strtotime($a['date']) - strtotime($b['date']);
                             });
 
@@ -866,7 +880,7 @@ class TransactionResource extends Resource
                         ]);
 
                         return response()->streamDownload(
-                            fn () => print($pdf->output()),
+                            fn() => print($pdf->output()),
                             'buku-kas-bbm-' . now()->format('Y-m-d') . '.pdf'
                         );
                     }),

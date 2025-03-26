@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Vehicle;
 use App\Models\VehicleType;
+use App\Models\FuelType;
 use Illuminate\Database\Seeder;
 
 class VehicleSeeder extends Seeder
@@ -13,6 +14,7 @@ class VehicleSeeder extends Seeder
         $faker = \Faker\Factory::create('id_ID');
 
         $vehicleTypeIds = VehicleType::pluck('id')->toArray();
+        $fuelTypeIds = FuelType::pluck('id')->toArray();
         $cityCodes = ['B', 'D', 'E', 'F', 'L', 'N', 'T', 'W', 'S'];
 
         $vehicleModels = ['Pickup', 'Bebek', 'Matic', 'SUV', 'MPV', 'Sport'];
@@ -25,11 +27,31 @@ class VehicleSeeder extends Seeder
             $brand = $faker->randomElement($brands);
 
             // Logic untuk memastikan kombinasi brand dan model masuk akal
-            $vehicleModel = match($brand) {
+            $vehicleModel = match ($brand) {
                 'Honda', 'Yamaha', 'Kawasaki' => $faker->randomElement(['Bebek', 'Matic', 'Sport']),
                 'Toyota', 'Nissan', 'Mitsubishi', 'Daihatsu' => $faker->randomElement(['Pickup', 'SUV', 'MPV']),
                 default => $faker->randomElement($vehicleModels),
             };
+
+            // Logic untuk menentukan fuel type berdasarkan jenis kendaraan
+            $fuelTypeId = null;
+            if (!empty($fuelTypeIds)) {
+                // Jika motor, biasanya bensin. Jika mobil bisa bensin atau solar
+                if (in_array($vehicleModel, ['Bebek', 'Matic', 'Sport'])) {
+                    // Filter untuk fuel type bensin (jika ada dalam seed data)
+                    $filtered = FuelType::whereIn('id', $fuelTypeIds)
+                        ->where('name', 'like', '%Bensin%')
+                        ->orWhere('name', 'like', '%Pertalite%')
+                        ->orWhere('name', 'like', '%Pertamax%')
+                        ->pluck('id')->toArray();
+
+                    $fuelTypeId = !empty($filtered)
+                        ? $faker->randomElement($filtered)
+                        : $faker->randomElement($fuelTypeIds);
+                } else {
+                    $fuelTypeId = $faker->randomElement($fuelTypeIds);
+                }
+            }
 
             $vehicleDetails = [
                 'Honda' => ['Brio RS CVT', 'CR-V Prestige', 'City Hatchback RS', 'BeAT CBS', 'Vario 160', 'PCX 160'],
@@ -44,8 +66,9 @@ class VehicleSeeder extends Seeder
                 : null;
 
             Vehicle::create([
-                'name' => $vehicleType ? $vehicleType->name . ' - ' . $brand . ' ' . $faker->word : 'Vehicle ' . ($i + 1),
+                // 'name' field removed
                 'vehicle_type_id' => $vehicleTypeId,
+                'fuel_type_id' => $fuelTypeId,
                 'license_plate' => sprintf(
                     '%s %d %s',
                     $faker->randomElement($cityCodes),
