@@ -505,6 +505,7 @@ class TransactionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at'))
             ->columns([
                 Tables\Columns\TextColumn::make('transaction_number')
                     ->label('No. Transaksi')
@@ -910,7 +911,23 @@ class TransactionResource extends Resource
                         ->modalHeading('Hapus Transaksi')
                         ->modalDescription('Apakah Anda yakin ingin menghapus data transaksi ini?')
                         ->modalSubmitActionLabel('Ya, Hapus')
-                        ->modalCancelActionLabel('Batal'),
+                        ->modalCancelActionLabel('Batal')
+                        ->form([
+                            Forms\Components\Textarea::make('deletion_reason')
+                                ->label('Alasan Penghapusan')
+                                ->required()
+                                ->minLength(10)
+                                ->maxLength(500)
+                                ->placeholder('Masukkan alasan penghapusan transaksi')
+                                ->validationMessages([
+                                    'required' => 'Alasan penghapusan wajib diisi',
+                                    'min' => 'Alasan penghapusan minimal 10 karakter',
+                                    'max' => 'Alasan penghapusan maksimal 500 karakter',
+                                ])
+                        ])
+                        ->before(function (Transaction $record, array $data) {
+                            session(['deletion_reason' => $data['deletion_reason']]);
+                        }),
                 ])
                     ->dropdown()
                     ->button()
