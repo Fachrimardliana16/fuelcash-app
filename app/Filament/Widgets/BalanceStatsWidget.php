@@ -16,6 +16,15 @@ class BalanceStatsWidget extends BaseWidget
     protected int | string | array $columnSpan = 'half';
     protected static ?string $pollingInterval = '15s';
 
+    protected function getFontSize($number)
+    {
+        $length = strlen((string)$number);
+        if ($length > 12) return 'text-lg';
+        if ($length > 9) return 'text-xl';
+        if ($length > 6) return 'text-2xl';
+        return 'text-3xl';
+    }
+
     protected function getStats(): array
     {
         // Get all active fuel types
@@ -65,8 +74,14 @@ class BalanceStatsWidget extends BaseWidget
                     " · " . number_format($percentageFilled, 0) . "%"
             );
 
+            $formattedBalance = number_format($remainingBalance, 0, ',', '.');
+            $fontSize = $this->getFontSize($remainingBalance);
+
             // Create a stat for this fuel type
-            $stats[] = Stat::make($fuelType->name, 'Rp ' . number_format($remainingBalance, 0, ',', '.'))
+            $stats[] = Stat::make(
+                $fuelType->name,
+                new HtmlString("<span class='{$fontSize}'>Rp {$formattedBalance}</span>")
+            )
                 ->description($description)
                 ->descriptionIcon('heroicon-m-currency-dollar')
                 ->chart([$percentageFilled, 100 - $percentageFilled])

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained(); // Add user_id to track who created this
-            $table->string('transaction_number')->unique();
+            $table->string('transaction_number')->unique()->nullable(); // Make it nullable
             $table->foreignId('vehicles_id')->constrained();
             $table->foreignId('vehicle_type_id')->constrained();
             $table->string('license_plate');
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('invoice')->nullable();
             $table->foreignId('balance_id')->constrained();
             $table->timestamps();
-            $table->softDeletes();
+            $table->softDeletes(); // Soft delete column
         });
     }
 

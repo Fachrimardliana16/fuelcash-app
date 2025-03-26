@@ -910,18 +910,7 @@ class TransactionResource extends Resource
                         ->modalHeading('Hapus Transaksi')
                         ->modalDescription('Apakah Anda yakin ingin menghapus data transaksi ini?')
                         ->modalSubmitActionLabel('Ya, Hapus')
-                        ->modalCancelActionLabel('Batal')
-                        ->before(function (Tables\Actions\DeleteAction $action) {
-                            if ($action->getRecord()->balance_id) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Transaksi tidak dapat dihapus')
-                                    ->body('Transaksi ini terkait dengan saldo')
-                                    ->send();
-
-                                $action->cancel();
-                            }
-                        }),
+                        ->modalCancelActionLabel('Batal'),
                 ])
                     ->dropdown()
                     ->button()
