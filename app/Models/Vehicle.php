@@ -14,10 +14,10 @@ class Vehicle extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'name',
         'license_plate',
         'owner',
         'vehicle_type_id',
+        'fuel_type_id',
         'vehicle_model',
         'brand',
         'detail',
@@ -50,6 +50,11 @@ class Vehicle extends Model
         return $this->belongsTo(VehicleType::class)->withTrashed();
     }
 
+    public function fuelType(): BelongsTo
+    {
+        return $this->belongsTo(FuelType::class)->withTrashed();
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'vehicles_id');
@@ -59,10 +64,10 @@ class Vehicle extends Model
     public static function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
             'license_plate' => 'required|string|max:20|unique:vehicles,license_plate',
             'owner' => 'required|string|max:255',
             'vehicle_type_id' => 'required|exists:vehicle_types,id',
+            'fuel_type_id' => 'nullable|exists:fuel_types,id',
             'vehicle_model' => 'nullable|string|in:Pickup,Bebek,Matic,SUV,MPV,Sport',
             'brand' => 'nullable|string|in:Honda,Toyota,Nissan,Suzuki,Yamaha,Kawasaki,Mitsubishi,Daihatsu,Other',
             'detail' => 'nullable|string|max:255',
@@ -78,7 +83,6 @@ class Vehicle extends Model
 
         static::creating(function ($model) {
             // Sanitasi input
-            $model->name = strip_tags($model->name);
             $model->owner = strip_tags($model->owner);
             $model->license_plate = strtoupper(strip_tags($model->license_plate));
         });

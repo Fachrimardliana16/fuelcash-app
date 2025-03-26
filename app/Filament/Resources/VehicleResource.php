@@ -19,89 +19,105 @@ class VehicleResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationGroup = 'Data Master Kendaraan';
     protected static ?int $navigationSort = 2;
-    protected static ?int $navigationGroupSort = 2; // Changed from ?string to ?int
+    protected static ?int $navigationGroupSort = 2;
     protected static ?string $navigationLabel = 'Data Kendaraan';
     protected static ?string $modelLabel = 'Kendaraan';
     protected static ?string $pluralModelLabel = 'Kendaraan';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Kendaraan')
-                    ->description('Masukkan informasi detail kendaraan')
+                Forms\Components\Grid::make()
                     ->schema([
-                        Forms\Components\Select::make('vehicle_type_id')
-                            ->relationship('vehicleType', 'name')
-                            ->label('Jenis Kendaraan')
-                            ->required()
-                            ->validationMessages([
-                                'required' => 'Jenis kendaraan harus dipilih',
-                            ]),
-                        Forms\Components\TextInput::make('license_plate')
-                            ->label('Nomor Kendaraan')
-                            ->required()
-                            ->maxLength(255)
-                            ->unique(ignoreRecord: true)
-                            ->regex('/^[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{1,3}$/')
-                            ->validationMessages([
-                                'required' => 'Nomor Kendaraan harus diisi',
-                                'regex' => 'Format Nomor Kendaraan tidak valid',
-                                'unique' => 'Nomor Kendaraan sudah terdaftar',
-                            ]),
-                        Forms\Components\Select::make('vehicle_model')
-                            ->label('Tipe Kendaraan')
-                            ->options([
-                                'Pickup' => 'Pickup',
-                                'Bebek' => 'Bebek',
-                                'Matic' => 'Matic',
-                                'SUV' => 'SUV',
-                                'MPV' => 'MPV',
-                                'Sport' => 'Sport',
-                            ]),
-                        Forms\Components\Select::make('brand')
-                            ->label('Merk')
-                            ->options([
-                                'Honda' => 'Honda',
-                                'Toyota' => 'Toyota',
-                                'Nissan' => 'Nissan',
-                                'Suzuki' => 'Suzuki',
-                                'Yamaha' => 'Yamaha',
-                                'Kawasaki' => 'Kawasaki',
-                                'Mitsubishi' => 'Mitsubishi',
-                                'Daihatsu' => 'Daihatsu',
-                                'Other' => 'Lainnya',
-                            ]),
-                        Forms\Components\TextInput::make('detail')
-                            ->label('Detail Kendaraan')
-                            ->placeholder('Contoh: Isuzu Panther Touring, Toyota Kijang Innova V 2.4 atau lainnya')
-                            ->helperText('Masukkan detail spesifik kendaraan seperti tipe dan varian')
-                            ->columnSpanFull(),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Data Kepemilikan')
-                    ->schema([
-                        Forms\Components\TextInput::make('owner')
-                            ->label('Pemilik')
-                            ->required()
-                            ->maxLength(255)
-                            ->validationMessages([
-                                'required' => 'Nama pemilik harus diisi',
-                            ]),
-                        Forms\Components\Select::make('ownership_type')
-                            ->label('Jenis Kepemilikan')
-                            ->options([
-                                'Inventaris' => 'Inventaris',
-                                'Pribadi' => 'Pribadi',
-                            ])
-                            ->required()
-                            ->default('Inventaris'),
-                        Forms\Components\Toggle::make('isactive')
-                            ->label('Status Aktif')
-                            ->required()
-                            ->inline(false)
-                            ->onColor('success')
-                            ->offColor('danger'),
+                        Forms\Components\Section::make('Data Kepemilikan')
+                            ->description('Masukkan informasi data kepemilikan kendaraan')
+                            ->collapsible()
+                            ->schema([
+                                Forms\Components\TextInput::make('owner')
+                                    ->label('Pemilik')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->validationMessages([
+                                        'required' => 'Nama pemilik harus diisi',
+                                    ]),
+                                Forms\Components\Select::make('ownership_type')
+                                    ->label('Jenis Kepemilikan')
+                                    ->options([
+                                        'Inventaris' => 'Inventaris',
+                                        'Pribadi' => 'Pribadi',
+                                    ])
+                                    ->required()
+                                    ->default('Inventaris'),
+                                Forms\Components\Toggle::make('isactive')
+                                    ->label('Status Aktif')
+                                    ->required()
+                                    ->inline(false)
+                                    ->onColor('success')
+                                    ->offColor('danger'),
+                            ])->columnSpan(1),
+                        Forms\Components\Section::make('Informasi Kendaraan')
+                            ->description('Masukkan informasi detail kendaraan')
+                            ->collapsible()
+                            ->schema([
+                                Forms\Components\Select::make('vehicle_type_id')
+                                    ->relationship('vehicleType', 'name')
+                                    ->label('Jenis Kendaraan')
+                                    ->required()
+                                    ->validationMessages([
+                                        'required' => 'Jenis kendaraan harus dipilih',
+                                    ]),
+                                Forms\Components\Select::make('fuel_type_id')
+                                    ->relationship('fuelType', 'name')
+                                    ->label('Jenis Bahan Bakar')
+                                    ->validationMessages([
+                                        'exists' => 'Jenis bahan bakar tidak valid',
+                                    ]),
+                                Forms\Components\TextInput::make('license_plate')
+                                    ->label('Nomor Kendaraan')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(ignoreRecord: true)
+                                    ->regex('/^[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{1,3}$/')
+                                    ->validationMessages([
+                                        'required' => 'Nomor Kendaraan harus diisi',
+                                        'regex' => 'Format Nomor Kendaraan tidak valid',
+                                        'unique' => 'Nomor Kendaraan sudah terdaftar',
+                                    ]),
+                                Forms\Components\Select::make('vehicle_model')
+                                    ->label('Tipe Kendaraan')
+                                    ->options([
+                                        'Pickup' => 'Pickup',
+                                        'Bebek' => 'Bebek',
+                                        'Matic' => 'Matic',
+                                        'SUV' => 'SUV',
+                                        'MPV' => 'MPV',
+                                        'Sport' => 'Sport',
+                                    ]),
+                                Forms\Components\Select::make('brand')
+                                    ->label('Merk')
+                                    ->options([
+                                        'Honda' => 'Honda',
+                                        'Toyota' => 'Toyota',
+                                        'Nissan' => 'Nissan',
+                                        'Suzuki' => 'Suzuki',
+                                        'Yamaha' => 'Yamaha',
+                                        'Kawasaki' => 'Kawasaki',
+                                        'Mitsubishi' => 'Mitsubishi',
+                                        'Daihatsu' => 'Daihatsu',
+                                        'Other' => 'Lainnya',
+                                    ]),
+                                Forms\Components\TextInput::make('detail')
+                                    ->label('Detail Kendaraan')
+                                    ->placeholder('Contoh: Isuzu Panther Touring, Toyota Kijang Innova V 2.4 atau lainnya')
+                                    ->helperText('Masukkan detail spesifik kendaraan seperti tipe dan varian')
+                                    ->columnSpanFull(),
+                            ])->columns(2)->columnSpan(1),
                     ])->columns(2),
             ]);
     }
@@ -110,15 +126,19 @@ class VehicleResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('vehicleType.name')
-                    ->label('Jenis Kendaraan')
-                    ->sortable()
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('license_plate')
                     ->label('Nomor Kendaraan')
                     ->searchable()
+                    ->sortable()
                     ->copyable()
                     ->copyMessage('Nomor Kendaraan berhasil disalin')
+                    ->description(
+                        fn($record): string =>
+                        $record->owner . ' - ' . $record->vehicleType->name
+                    ),
+                Tables\Columns\TextColumn::make('fuelType.name')
+                    ->label('Jenis Bahan Bakar')
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('vehicle_model')
                     ->label('Tipe')
@@ -132,11 +152,8 @@ class VehicleResource extends Resource
                     ->label('Detail')
                     ->searchable()
                     ->sortable()
-                    ->description(fn ($record): string => $record->brand . ' ' . $record->vehicle_model),
-                Tables\Columns\TextColumn::make('owner')
-                    ->label('Pemilik')
-                    ->searchable()
-                    ->sortable(),
+                    ->description(fn($record): string => $record->brand . ' ' . $record->vehicle_model),
+
                 Tables\Columns\TextColumn::make('ownership_type')
                     ->label('Kepemilikan')
                     ->sortable(),
@@ -160,6 +177,10 @@ class VehicleResource extends Resource
                     ->relationship('vehicleType', 'name')
                     ->label('Jenis Kendaraan')
                     ->placeholder('Semua Jenis'),
+                Tables\Filters\SelectFilter::make('fuel_type_id')
+                    ->relationship('fuelType', 'name')
+                    ->label('Jenis Bahan Bakar')
+                    ->placeholder('Semua Jenis BBM'),
                 Tables\Filters\TernaryFilter::make('isactive')
                     ->label('Status')
                     ->placeholder('Semua Status')
