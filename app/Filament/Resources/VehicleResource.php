@@ -83,10 +83,8 @@ class VehicleResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->unique(ignoreRecord: true)
-                                    ->regex('/^[A-Z]{1,2}\s*\d{1,4}\s*[A-Z]{1,3}$/')
                                     ->validationMessages([
                                         'required' => 'Nomor Kendaraan harus diisi',
-                                        'regex' => 'Format Nomor Kendaraan tidak valid',
                                         'unique' => 'Nomor Kendaraan sudah terdaftar',
                                     ]),
                                 Forms\Components\Select::make('vehicle_model')
