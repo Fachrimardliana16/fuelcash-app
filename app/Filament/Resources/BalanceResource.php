@@ -49,7 +49,21 @@ class BalanceResource extends Resource
                             ->live()
                             ->validationMessages([
                                 'required' => 'Silakan pilih jenis BBM',
-                            ]),
+                            ])
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if (!$state) return;
+
+                                $fuelType = FuelType::find($state);
+                                $maxDeposit = $fuelType?->max_deposit ?? 0;
+
+                                $lastBalance = Balance::where('fuel_type_id', $state)
+                                    ->latest()
+                                    ->first()?->remaining_balance ?? 0;
+
+                                $addableBalance = max(0, $maxDeposit - $lastBalance);
+                                $set('deposit_amount', $addableBalance);
+                                $set('remaining_balance', $lastBalance + $addableBalance);
+                            }),
 
                         Forms\Components\DatePicker::make('date')
                             ->label('Tanggal Input')
@@ -66,9 +80,22 @@ class BalanceResource extends Resource
                             ->numeric()
                             ->prefix('Rp')
                             ->inputMode('numeric')
-                            ->placeholder('Masukkan jumlah deposit')
+                            ->placeholder('Jumlah akan terisi otomatis (bisa diedit)')
                             ->live(onBlur: true, debounce: 500)
                             ->minValue(1)
+                            ->hint(function ($get) {
+                                $fuelTypeId = $get('fuel_type_id');
+                                if (!$fuelTypeId) return 'Pilih jenis BBM terlebih dahulu';
+
+                                $fuelType = FuelType::find($fuelTypeId);
+                                $maxDeposit = $fuelType?->max_deposit ?? 0;
+                                $lastBalance = Balance::where('fuel_type_id', $fuelTypeId)
+                                    ->latest()
+                                    ->first()?->remaining_balance ?? 0;
+
+                                $addableBalance = max(0, $maxDeposit - $lastBalance);
+                                return 'Maksimal: Rp ' . number_format($addableBalance, 0, ',', '.');
+                            })
                             ->validationMessages([
                                 'required' => 'Silakan masukkan jumlah deposit',
                                 'numeric' => 'Jumlah harus berupa angka',
