@@ -290,7 +290,7 @@
                         @endif
                         <p class="signature-name">{{ $signature->name }}<br>
                         @if($signature->nip)
-                        <span class="signature-nip">NIP. {{ $signature->nip }}</span>
+                        <span class="signature-nip">NIPPAM. {{ $signature->nip }}</span>
                         @endif</p>
                         @php $firstSig = false; @endphp
                     </td>
@@ -309,7 +309,7 @@
                 @endif
                 <p class="signature-name">{{ $bottomSignature->name }}<br>
                 @if($bottomSignature->nip)
-                <span class="signature-nip">NIP. {{ $bottomSignature->nip }}</span>
+                <span class="signature-nip">NIPPAM. {{ $bottomSignature->nip }}</span>
                 @endif</p>
                 @endif
             </div>
